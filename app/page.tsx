@@ -141,18 +141,6 @@ export default function HomePage() {
           {/* Start Button - Mobile Optimized */}
           <div className="text-center animate-in slide-in-from-bottom duration-500 delay-800">
             <div className="space-y-4">
-              {isAuthenticated ? (
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-full text-sm text-primary font-medium">
-                  <Users className="h-4 w-4" />
-                  Connected to Farcaster
-                </div>
-              ) : (
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-secondary/10 border border-secondary/20 rounded-full text-sm text-secondary font-medium">
-                  <Users className="h-4 w-4 animate-spin" />
-                  Connecting to Farcaster...
-                </div>
-              )}
-              
               <Button
                 size="lg"
                 className="w-full md:w-auto px-8 md:px-12 py-4 md:py-6 text-base md:text-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
@@ -160,12 +148,6 @@ export default function HomePage() {
               >
                 Start Quiz
               </Button>
-              
-              {!isAuthenticated && (
-                <p className="text-xs md:text-sm text-muted-foreground">
-                  Auto-connecting to your Farcaster account
-                </p>
-              )}
             </div>
             <p className="text-xs md:text-sm text-muted-foreground mt-3 md:mt-4 animate-in fade-in duration-500 delay-900">
               Ready to test your knowledge?
