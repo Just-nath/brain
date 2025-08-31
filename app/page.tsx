@@ -45,6 +45,21 @@ export default function HomePage() {
       <header className="border-b border-border bg-card animate-in slide-in-from-top duration-500">
         <div className="container mx-auto px-4 py-4 md:py-6">
           <div className="flex items-center justify-between">
+            {/* Left side - Help Icon */}
+            <div className="flex items-center">
+              <Link href="/how-it-works">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-10 w-10 md:h-12 md:w-12 rounded-full hover:bg-primary/10 transition-colors animate-in zoom-in duration-500 delay-400"
+                  title="How it works"
+                >
+                  <HelpCircle className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground hover:text-primary transition-colors" />
+                </Button>
+              </Link>
+            </div>
+            
+            {/* Center - Brains Title */}
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-lg bg-primary animate-in zoom-in duration-500 hover:scale-110 transition-transform">
                 <Brain className="h-5 w-5 md:h-6 md:w-6 text-primary-foreground animate-pulse" />
@@ -59,15 +74,14 @@ export default function HomePage() {
               </div>
             </div>
             
-            {/* Header Actions */}
-            <div className="flex items-center gap-2">
-              {/* User Profile Icon */}
+            {/* Right side - User Profile Icon */}
+            <div className="flex items-center">
               {isAuthenticated && user && (
                 <Link href="/profile">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-10 w-10 md:h-12 md:w-12 rounded-full hover:bg-primary/10 transition-colors animate-in zoom-in duration-500 delay-400"
+                    className="h-10 w-10 md:h-12 md:w-12 rounded-full hover:bg-primary/10 transition-colors animate-in zoom-in duration-500 delay-500"
                     title="View Profile"
                   >
                     <img
@@ -78,18 +92,6 @@ export default function HomePage() {
                   </Button>
                 </Link>
               )}
-              
-              {/* Help Icon */}
-              <Link href="/how-it-works">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-10 w-10 md:h-12 md:w-12 rounded-full hover:bg-primary/10 transition-colors animate-in zoom-in duration-500 delay-500"
-                  title="How it works"
-                >
-                  <HelpCircle className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground hover:text-primary transition-colors" />
-                </Button>
-              </Link>
             </div>
           </div>
         </div>

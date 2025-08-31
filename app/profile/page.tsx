@@ -19,7 +19,7 @@ interface LeaderboardEntry {
   username: string
   displayName: string
   pfpUrl: string
-  allTimeBest: number
+  aggregateScore: number
   totalGames: number
   averageScore: number
 }
@@ -72,7 +72,7 @@ export default function ProfilePage() {
         username: "vitalik.eth",
         displayName: "Vitalik Buterin",
         pfpUrl: "https://picsum.photos/200/200?random=2",
-        allTimeBest: 20,
+        aggregateScore: 277, // 15 games * 18.5 average
         totalGames: 15,
         averageScore: 18.5
       },
@@ -80,7 +80,7 @@ export default function ProfilePage() {
         username: "dwr.eth",
         displayName: "Dan Romero",
         pfpUrl: "https://picsum.photos/200/200?random=1",
-        allTimeBest: 19,
+        aggregateScore: 206, // 12 games * 17.2 average
         totalGames: 12,
         averageScore: 17.2
       },
@@ -88,7 +88,7 @@ export default function ProfilePage() {
         username: "jessepollak",
         displayName: "Jesse Pollak",
         pfpUrl: "https://picsum.photos/200/200?random=3",
-        allTimeBest: 18,
+        aggregateScore: 134, // 8 games * 16.8 average
         totalGames: 8,
         averageScore: 16.8
       },
@@ -96,7 +96,7 @@ export default function ProfilePage() {
         username: "balajis.eth",
         displayName: "Balaji Srinivasan",
         pfpUrl: "https://picsum.photos/200/200?random=4",
-        allTimeBest: 18,
+        aggregateScore: 161, // 10 games * 16.1 average
         totalGames: 10,
         averageScore: 16.1
       },
@@ -104,7 +104,7 @@ export default function ProfilePage() {
         username: "patrickalphac",
         displayName: "Patrick Collins",
         pfpUrl: "https://picsum.photos/200/200?random=5",
-        allTimeBest: 17,
+        aggregateScore: 93, // 6 games * 15.5 average
         totalGames: 6,
         averageScore: 15.5
       },
@@ -112,7 +112,7 @@ export default function ProfilePage() {
         username: "naval",
         displayName: "Naval Ravikant",
         pfpUrl: "https://picsum.photos/200/200?random=6",
-        allTimeBest: 17,
+        aggregateScore: 137, // 9 games * 15.2 average
         totalGames: 9,
         averageScore: 15.2
       },
@@ -120,7 +120,7 @@ export default function ProfilePage() {
         username: "hayden.eth",
         displayName: "Hayden Adams",
         pfpUrl: "https://picsum.photos/200/200?random=7",
-        allTimeBest: 16,
+        aggregateScore: 104, // 7 games * 14.8 average
         totalGames: 7,
         averageScore: 14.8
       },
@@ -128,7 +128,7 @@ export default function ProfilePage() {
         username: "linda.eth",
         displayName: "Linda Xie",
         pfpUrl: "https://picsum.photos/200/200?random=8",
-        allTimeBest: 16,
+        aggregateScore: 73, // 5 games * 14.5 average
         totalGames: 5,
         averageScore: 14.5
       },
@@ -136,7 +136,7 @@ export default function ProfilePage() {
         username: "coopahtroopa.eth",
         displayName: "Cooper Turley",
         pfpUrl: "https://picsum.photos/200/200?random=9",
-        allTimeBest: 15,
+        aggregateScore: 57, // 4 games * 14.2 average
         totalGames: 4,
         averageScore: 14.2
       },
@@ -144,27 +144,27 @@ export default function ProfilePage() {
         username: "stani.eth",
         displayName: "Stani Kulechov",
         pfpUrl: "https://picsum.photos/200/200?random=10",
-        allTimeBest: 15,
+        aggregateScore: 83, // 6 games * 13.8 average
         totalGames: 6,
         averageScore: 13.8
       }
     ]
 
     // Add current user to leaderboard if they have scores
-    if (allTimeBest) {
+    if (recentScores.length > 0) {
+      const userAggregateScore = recentScores.reduce((sum, score) => sum + score.score, 0)
       const userEntry: LeaderboardEntry = {
         username: user.username,
         displayName: user.displayName,
         pfpUrl: user.pfpUrl,
-        allTimeBest: allTimeBest.score,
+        aggregateScore: userAggregateScore,
         totalGames: recentScores.length,
-        averageScore: recentScores.length > 0 ? 
-          recentScores.reduce((sum, score) => sum + score.score, 0) / recentScores.length : 0
+        averageScore: userAggregateScore / recentScores.length
       }
       
       // Insert user into correct position
       const updatedLeaderboard = [...mockLeaderboard, userEntry]
-        .sort((a, b) => b.allTimeBest - a.allTimeBest || b.averageScore - a.averageScore)
+        .sort((a, b) => b.aggregateScore - a.aggregateScore || b.averageScore - a.averageScore)
         .slice(0, 10)
       
       setLeaderboard(updatedLeaderboard)
@@ -402,10 +402,10 @@ export default function ProfilePage() {
                             <div className="text-xs text-muted-foreground">@{entry.username}</div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="font-semibold text-primary">{entry.allTimeBest}/20</div>
-                          <div className="text-xs text-muted-foreground">{entry.totalGames} games</div>
-                        </div>
+                                                 <div className="text-right">
+                           <div className="font-semibold text-primary">{entry.aggregateScore} pts</div>
+                           <div className="text-xs text-muted-foreground">{entry.totalGames} games</div>
+                         </div>
                       </div>
                     ))}
                   </div>
