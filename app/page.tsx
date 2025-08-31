@@ -12,7 +12,7 @@ import Link from "next/link"
 export default function HomePage() {
   const [quizStarted, setQuizStarted] = useState(false)
   const [launchingAccount, setLaunchingAccount] = useState<string | undefined>(undefined)
-  const { isAuthenticated } = useFarcaster()
+  const { isAuthenticated, user } = useFarcaster()
 
   useEffect(() => {
     // Check URL parameters for launching account
@@ -59,17 +59,38 @@ export default function HomePage() {
               </div>
             </div>
             
-            {/* Help Icon */}
-            <Link href="/how-it-works">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-10 w-10 md:h-12 md:w-12 rounded-full hover:bg-primary/10 transition-colors animate-in zoom-in duration-500 delay-400"
-                title="How it works"
-              >
-                <HelpCircle className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground hover:text-primary transition-colors" />
-              </Button>
-            </Link>
+            {/* Header Actions */}
+            <div className="flex items-center gap-2">
+              {/* User Profile Icon */}
+              {isAuthenticated && user && (
+                <Link href="/profile">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-10 w-10 md:h-12 md:w-12 rounded-full hover:bg-primary/10 transition-colors animate-in zoom-in duration-500 delay-400"
+                    title="View Profile"
+                  >
+                    <img
+                      src={user.pfpUrl}
+                      alt={`${user.displayName}'s profile`}
+                      className="h-6 w-6 md:h-8 md:w-8 rounded-full object-cover"
+                    />
+                  </Button>
+                </Link>
+              )}
+              
+              {/* Help Icon */}
+              <Link href="/how-it-works">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-10 w-10 md:h-12 md:w-12 rounded-full hover:bg-primary/10 transition-colors animate-in zoom-in duration-500 delay-500"
+                  title="How it works"
+                >
+                  <HelpCircle className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground hover:text-primary transition-colors" />
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </header>

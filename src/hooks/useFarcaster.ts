@@ -155,20 +155,74 @@ export function useFarcaster() {
     const key = `personal_best_${user.fid}`
     const currentBest = getPersonalBest()
     
+    const scoreData = {
+      score,
+      totalQuestions,
+      timeTaken,
+      date: new Date().toISOString(),
+      percentage: Math.round((score / totalQuestions) * 100)
+    }
+    
     if (!currentBest || score > currentBest.score || (score === currentBest.score && timeTaken < currentBest.timeTaken)) {
-      const newBest = {
-        score,
-        totalQuestions,
-        timeTaken,
-        date: new Date().toISOString(),
-        percentage: Math.round((score / totalQuestions) * 100)
-      }
-      localStorage.setItem(key, JSON.stringify(newBest))
+      localStorage.setItem(key, JSON.stringify(scoreData))
+      
+      // Also save as daily score if it's better
+      saveDailyScore(score, totalQuestions, timeTaken)
+      
+      // Add to recent scores
+      addToRecentScores(scoreData)
+      
+      return true
+    }
+    
+    // Even if not personal best, still save daily and recent scores
+    saveDailyScore(score, totalQuestions, timeTaken)
+    addToRecentScores(scoreData)
+    
+    return false
+  }, [user, getPersonalBest])
+
+  // Save daily score (best score for today)
+  const saveDailyScore = useCallback((score: number, totalQuestions: number, timeTaken: number) => {
+    if (!user) return false
+    
+    const today = new Date().toDateString()
+    const dailyKey = `daily_score_${user.fid}_${today}`
+    const currentDaily = localStorage.getItem(dailyKey)
+    
+    const scoreData = {
+      score,
+      totalQuestions,
+      timeTaken,
+      date: new Date().toISOString(),
+      percentage: Math.round((score / totalQuestions) * 100)
+    }
+    
+    if (!currentDaily || score > JSON.parse(currentDaily).score) {
+      localStorage.setItem(dailyKey, JSON.stringify(scoreData))
       return true
     }
     
     return false
-  }, [user, getPersonalBest])
+  }, [user])
+
+  // Add score to recent scores list
+  const addToRecentScores = useCallback((scoreData: any) => {
+    if (!user) return false
+    
+    const recentKey = `recent_scores_${user.fid}`
+    const currentRecent = localStorage.getItem(recentKey)
+    const recentScores = currentRecent ? JSON.parse(currentRecent) : []
+    
+    // Add new score to beginning
+    recentScores.unshift(scoreData)
+    
+    // Keep only last 20 scores
+    const updatedRecent = recentScores.slice(0, 20)
+    
+    localStorage.setItem(recentKey, JSON.stringify(updatedRecent))
+    return true
+  }, [user])
 
   // Initialize auth on mount
   useEffect(() => {
@@ -184,6 +238,8 @@ export function useFarcaster() {
     signOut,
     getPersonalBest,
     savePersonalBest,
+    saveDailyScore,
+    addToRecentScores,
     isInFrame,
     sdk
   }
