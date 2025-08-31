@@ -87,3 +87,4 @@ export function getCategoryColor(category) {
       return '#6b7280' // gray
   }
 }
+

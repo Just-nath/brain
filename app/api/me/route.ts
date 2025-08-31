@@ -2,12 +2,12 @@ import { NextResponse } from 'next/server'
 
 export async function GET() {
   try {
-    // For now, return a mock user since the SDK is still being set up
-    // In production, this would use the actual Farcaster SDK
+    // In a real Farcaster Mini App, this would use the actual Farcaster SDK
+    // to get the authenticated user's data from the Mini App context
     const mockUser = {
       fid: 12345,
-      username: 'demo.user',
-      displayName: 'Demo User',
+      username: 'farcaster.user',
+      displayName: 'Farcaster User',
       pfpUrl: '/default-pfp.png'
     }
 

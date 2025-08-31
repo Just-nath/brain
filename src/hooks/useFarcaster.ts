@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { sdk } from '@farcaster/frame-sdk'
 
 interface FarcasterUser {
   fid: number
@@ -13,27 +14,50 @@ export function useFarcaster() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Check if we're in a Farcaster Frame context
+  // Check if we're in a Farcaster Mini App context
   const isInFrame = typeof window !== 'undefined' && window.location.search.includes('frame=1')
+
+  // Initialize Farcaster SDK
+  const initializeSDK = useCallback(async () => {
+    try {
+      if (typeof window !== 'undefined') {
+        // Call sdk.actions.ready() as required by Farcaster Mini App docs
+        await sdk.actions.ready()
+        return sdk
+      }
+    } catch (error) {
+      console.error('Failed to initialize Farcaster SDK:', error)
+    }
+    return null
+  }, [])
 
   // Initialize Farcaster authentication
   const initializeAuth = useCallback(async () => {
     try {
-      // Auto-sign in using our API
-      if (typeof window !== 'undefined') {
-        // Try to get authenticated user from our API
-        try {
-          const res = await fetch(`${window.location.origin}/api/me`)
-          if (res.ok) {
-            const userData = await res.json()
-            setUser(userData)
-            setIsAuthenticated(true)
-            localStorage.setItem('farcaster_user', JSON.stringify(userData))
-            return
+      const miniAppSDK = await initializeSDK()
+      if (!miniAppSDK) {
+        throw new Error('Failed to initialize Farcaster SDK')
+      }
+
+      // Check if user is already authenticated
+      try {
+        // Use the SDK to fetch user data from the /me endpoint
+        const response = await miniAppSDK.quickAuth.fetch('/me')
+        if (response.ok) {
+          const userData = await response.json()
+          const user: FarcasterUser = {
+            fid: userData.fid || 0,
+            username: userData.username || 'unknown',
+            displayName: userData.displayName || userData.username || 'Unknown User',
+            pfpUrl: userData.pfpUrl || '/default-pfp.png'
           }
-        } catch (apiError) {
-          console.error('API error:', apiError)
+          setUser(user)
+          setIsAuthenticated(true)
+          localStorage.setItem('farcaster_user', JSON.stringify(user))
+          return
         }
+      } catch {
+        console.log('User not authenticated, will need to sign in')
       }
 
       // Check for existing session in localStorage as fallback
@@ -51,7 +75,7 @@ export function useFarcaster() {
     } catch (error) {
       console.error('Farcaster auth initialization error:', error)
     }
-  }, [])
+  }, [initializeSDK])
 
   // Sign in with Farcaster
   const signIn = useCallback(async () => {
@@ -59,17 +83,34 @@ export function useFarcaster() {
     setError(null)
 
     try {
-      // Simulate authentication for now
-      // In production, this would integrate with the actual Farcaster auth system
-      await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate delay
-      await initializeAuth()
+      const miniAppSDK = await initializeSDK()
+      if (!miniAppSDK) {
+        throw new Error('Failed to initialize Farcaster SDK')
+      }
+
+      // Authenticate user by fetching user data
+      const response = await miniAppSDK.quickAuth.fetch('/me')
+      if (response.ok) {
+        const userData = await response.json()
+        const user: FarcasterUser = {
+          fid: userData.fid || 0,
+          username: userData.username || 'unknown',
+          displayName: userData.displayName || userData.username || 'Unknown User',
+          pfpUrl: userData.pfpUrl || '/default-pfp.png'
+        }
+        setUser(user)
+        setIsAuthenticated(true)
+        localStorage.setItem('farcaster_user', JSON.stringify(user))
+      } else {
+        throw new Error('Authentication failed')
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed')
       console.error('Farcaster sign-in error:', err)
     } finally {
       setIsLoading(false)
     }
-  }, [initializeAuth])
+  }, [initializeSDK])
 
   // Sign out
   const signOut = useCallback(() => {
@@ -123,6 +164,7 @@ export function useFarcaster() {
     signOut,
     getPersonalBest,
     savePersonalBest,
-    isInFrame
+    isInFrame,
+    sdk
   }
 }

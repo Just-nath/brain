@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -14,7 +14,6 @@ interface FarcasterAuthProps {
 
 export default function FarcasterAuth({ children, onComplete }: FarcasterAuthProps) {
   const { isAuthenticated, isLoading, error, signIn, isInFrame } = useFarcaster()
-  const [showAuth, setShowAuth] = useState(true)
 
   // Auto-sign in when component mounts
   useEffect(() => {
@@ -25,12 +24,7 @@ export default function FarcasterAuth({ children, onComplete }: FarcasterAuthPro
   }, [isAuthenticated, isLoading, signIn])
 
   // If user is authenticated, show the quiz
-  if (isAuthenticated && !showAuth) {
-    return <>{children}</>
-  }
-
-  // If we're in a Farcaster Frame and user is authenticated, show quiz directly
-  if (isInFrame && isAuthenticated) {
+  if (isAuthenticated) {
     return <>{children}</>
   }
 
@@ -94,7 +88,7 @@ export default function FarcasterAuth({ children, onComplete }: FarcasterAuthPro
                   
                   <Button
                     size="lg"
-                    onClick={() => setShowAuth(false)}
+                    onClick={() => onComplete()}
                     className="w-full px-8 py-4 text-lg font-semibold"
                   >
                     Continue to Quiz

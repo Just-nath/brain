@@ -192,3 +192,4 @@ For issues or questions about the Farcaster integration:
 ---
 
 **Note**: This conversion maintains 100% backward compatibility while adding comprehensive Farcaster Mini App capabilities. The existing quiz experience is enhanced, not replaced.
+

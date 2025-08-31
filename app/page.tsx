@@ -11,7 +11,7 @@ import { useFarcaster } from "@/src/hooks/useFarcaster"
 export default function HomePage() {
   const [quizStarted, setQuizStarted] = useState(false)
   const [launchingAccount, setLaunchingAccount] = useState<string | undefined>(undefined)
-  const { user, isAuthenticated } = useFarcaster()
+  const { isAuthenticated } = useFarcaster()
 
   useEffect(() => {
     // Check URL parameters for launching account
@@ -68,8 +68,8 @@ export default function HomePage() {
           <div className="text-center mb-8 md:mb-12">
             <div className="mb-6 animate-in zoom-in duration-700 delay-200">
               <img
-                src="/artificial-brain.svg"
-                alt="Artificial brain with neural network connections representing intelligence and knowledge"
+                src="/icon.png"
+                alt="Brains - Farcaster PFP Quiz icon representing intelligence and knowledge"
                 className="w-24 h-24 md:w-32 md:h-32 mx-auto rounded-full shadow-lg hover:scale-110 transition-transform duration-300"
               />
             </div>
@@ -156,38 +156,33 @@ export default function HomePage() {
 
           {/* Start Button - Mobile Optimized */}
           <div className="text-center animate-in slide-in-from-bottom duration-500 delay-1200">
-            {isAuthenticated ? (
-              <div className="space-y-4">
+            <div className="space-y-4">
+              {isAuthenticated ? (
                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-full text-sm text-primary font-medium">
                   <Users className="h-4 w-4" />
-                  Signed in as @{user?.username}
+                  Connected to Farcaster
                 </div>
-                <Button
-                  size="lg"
-                  className="w-full md:w-auto px-8 md:px-12 py-4 md:py-6 text-base md:text-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
-                  onClick={() => setQuizStarted(true)}
-                >
-                  Start Quiz
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
+              ) : (
                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-secondary/10 border border-secondary/20 rounded-full text-sm text-secondary font-medium">
                   <Users className="h-4 w-4 animate-spin" />
                   Connecting to Farcaster...
                 </div>
-                <Button
-                  size="lg"
-                  className="w-full md:w-auto px-8 md:px-12 py-4 md:py-6 text-base md:text-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
-                  onClick={() => setQuizStarted(true)}
-                >
-                  Start Quiz
-                </Button>
+              )}
+              
+              <Button
+                size="lg"
+                className="w-full md:w-auto px-8 md:px-12 py-4 md:py-6 text-base md:text-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                onClick={() => setQuizStarted(true)}
+              >
+                Start Quiz
+              </Button>
+              
+              {!isAuthenticated && (
                 <p className="text-xs md:text-sm text-muted-foreground">
                   Auto-connecting to your Farcaster account
                 </p>
-              </div>
-            )}
+              )}
+            </div>
             <p className="text-xs md:text-sm text-muted-foreground mt-3 md:mt-4 animate-in fade-in duration-500 delay-1300">
               Ready to test your knowledge?
             </p>
