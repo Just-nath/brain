@@ -1,0 +1,8 @@
+{
+  "name": "Brains - Farcaster PFP Quiz",
+  "version": "1.0.0", 
+  "description": "Test your knowledge of Farcaster community members",
+  "icon": "/icon.svg",
+  "splashBackgroundColor": "#3b82f6",
+  "splashTextColor": "#ffffff"
+}

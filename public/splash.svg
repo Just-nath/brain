@@ -1,0 +1,97 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#backgroundGradient)"/>
+  
+  <!-- Gradient definitions -->
+  <defs>
+    <linearGradient id="backgroundGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#10b981;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="brainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.95" />
+      <stop offset="100%" style="stop-color:#f8fafc;stop-opacity:0.9" />
+    </linearGradient>
+    <linearGradient id="neuralGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e2e8f0;stop-opacity:0.9" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Main brain structure (centered and larger) -->
+  <path d="M600 150 C 450 150, 300 300, 300 450 C 300 600, 450 750, 600 750 C 750 750, 900 600, 900 450 C 900 300, 750 150, 600 150 Z" fill="url(#brainGradient)" stroke="#ffffff" stroke-width="20"/>
+  
+  <!-- Brain hemispheres -->
+  <path d="M600 200 C 480 200, 350 380, 350 450 C 350 520, 480 700, 600 700 C 720 700, 850 520, 850 450 C 850 380, 720 200, 600 200 Z" fill="none" stroke="#3b82f6" stroke-width="15" opacity="0.7"/>
+  
+  <!-- Neural network connections -->
+  <circle cx="400" cy="280" r="20" fill="url(#neuralGradient)"/>
+  <circle cx="800" cy="280" r="20" fill="url(#neuralGradient)"/>
+  <circle cx="350" cy="360" r="20" fill="url(#neuralGradient)"/>
+  <circle cx="850" cy="360" r="20" fill="url(#neuralGradient)"/>
+  <circle cx="320" cy="450" r="20" fill="url(#neuralGradient)"/>
+  <circle cx="880" cy="450" r="20" fill="url(#neuralGradient)"/>
+  <circle cx="350" cy="540" r="20" fill="url(#neuralGradient)"/>
+  <circle cx="850" cy="540" r="20" fill="url(#neuralGradient)"/>
+  <circle cx="400" cy="620" r="20" fill="url(#neuralGradient)"/>
+  <circle cx="800" cy="620" r="20" fill="url(#neuralGradient)"/>
+  
+  <!-- Central neural connections -->
+  <circle cx="600" cy="240" r="20" fill="url(#neuralGradient)"/>
+  <circle cx="600" cy="320" r="20" fill="url(#neuralGradient)"/>
+  <circle cx="600" cy="400" r="20" fill="url(#neuralGradient)"/>
+  <circle cx="600" cy="480" r="20" fill="url(#neuralGradient)"/>
+  <circle cx="600" cy="560" r="20" fill="url(#neuralGradient)"/>
+  
+  <!-- Neural network lines -->
+  <line x1="400" y1="280" x2="600" y2="240" stroke="url(#neuralGradient)" stroke-width="10" opacity="0.8"/>
+  <line x1="800" y1="280" x2="600" y2="240" stroke="url(#neuralGradient)" stroke-width="10" opacity="0.8"/>
+  <line x1="350" y1="360" x2="600" y2="320" stroke="url(#neuralGradient)" stroke-width="10" opacity="0.8"/>
+  <line x1="850" y1="360" x2="600" y2="320" stroke="url(#neuralGradient)" stroke-width="10" opacity="0.8"/>
+  <line x1="320" y1="450" x2="600" y2="400" stroke="url(#neuralGradient)" stroke-width="10" opacity="0.8"/>
+  <line x1="880" y1="450" x2="600" y2="400" stroke="url(#neuralGradient)" stroke-width="10" opacity="0.8"/>
+  <line x1="350" y1="540" x2="600" y2="480" stroke="url(#neuralGradient)" stroke-width="10" opacity="0.8"/>
+  <line x1="850" y1="540" x2="600" y2="480" stroke="url(#neuralGradient)" stroke-width="10" opacity="0.8"/>
+  <line x1="400" y1="620" x2="600" y2="560" stroke="url(#neuralGradient)" stroke-width="10" opacity="0.8"/>
+  <line x1="800" y1="620" x2="600" y2="560" stroke="url(#neuralGradient)" stroke-width="10" opacity="0.8"/>
+  
+  <!-- Cross-hemisphere connections -->
+  <line x1="480" y1="240" x2="720" y2="240" stroke="url(#neuralGradient)" stroke-width="8" opacity="0.6"/>
+  <line x1="480" y1="320" x2="720" y2="320" stroke="url(#neuralGradient)" stroke-width="8" opacity="0.6"/>
+  <line x1="480" y1="400" x2="720" y2="400" stroke="url(#neuralGradient)" stroke-width="8" opacity="0.6"/>
+  <line x1="480" y1="480" x2="720" y2="480" stroke="url(#neuralGradient)" stroke-width="8" opacity="0.6"/>
+  <line x1="480" y1="560" x2="720" y2="560" stroke="url(#neuralGradient)" stroke-width="8" opacity="0.6"/>
+  
+  <!-- Data flow indicators -->
+  <circle cx="600" cy="680" r="30" fill="#10b981"/>
+  <circle cx="600" cy="720" r="20" fill="#10b981" opacity="0.8"/>
+  <circle cx="600" cy="750" r="10" fill="#10b981" opacity="0.6"/>
+  
+  <!-- Tech circuit elements -->
+  <rect x="200" y="200" width="30" height="30" fill="#3b82f6" opacity="0.9"/>
+  <rect x="970" y="200" width="30" height="30" fill="#3b82f6" opacity="0.9"/>
+  <rect x="200" y="800" width="30" height="30" fill="#3b82f6" opacity="0.9"/>
+  <rect x="970" y="800" width="30" height="30" fill="#3b82f6" opacity="0.9"/>
+  
+  <!-- App name text -->
+  <text x="600" y="840" text-anchor="middle" font-family="Arial, sans-serif" font-size="120" font-weight="bold" fill="url(#textGradient)">
+    BRAINS
+  </text>
+  
+  <!-- Subtitle -->
+  <text x="600" y="900" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" font-weight="normal" fill="url(#textGradient)" opacity="0.8">
+    Farcaster PFP Quiz
+  </text>
+  
+  <!-- Pulsing effect circles -->
+  <circle cx="600" cy="450" r="360" fill="none" stroke="#10b981" stroke-width="10" opacity="0.3">
+    <animate attributeName="opacity" values="0.3;0.8;0.3" dur="3s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="600" cy="450" r="440" fill="none" stroke="#3b82f6" stroke-width="10" opacity="0.2">
+    <animate attributeName="opacity" values="0.2;0.6;0.2" dur="4s" repeatCount="indefinite"/>
+  </circle>
+</svg>
