@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Brain, Clock, Users, Trophy } from "lucide-react"
+import { Brain, Clock, Users, Trophy, HelpCircle } from "lucide-react"
 import QuizEngine from "@/components/quiz-engine"
 import FarcasterAuth from "@/components/farcaster-auth"
 import { useFarcaster } from "@/src/hooks/useFarcaster"
+import Link from "next/link"
 
 export default function HomePage() {
   const [quizStarted, setQuizStarted] = useState(false)
@@ -43,7 +44,7 @@ export default function HomePage() {
       {/* Header */}
       <header className="border-b border-border bg-card animate-in slide-in-from-top duration-500">
         <div className="container mx-auto px-4 py-4 md:py-6">
-          <div className="flex items-center justify-center">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-lg bg-primary animate-in zoom-in duration-500 hover:scale-110 transition-transform">
                 <Brain className="h-5 w-5 md:h-6 md:w-6 text-primary-foreground animate-pulse" />
@@ -57,6 +58,18 @@ export default function HomePage() {
                 </p>
               </div>
             </div>
+            
+            {/* Help Icon */}
+            <Link href="/how-it-works">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-10 w-10 md:h-12 md:w-12 rounded-full hover:bg-primary/10 transition-colors animate-in zoom-in duration-500 delay-400"
+                title="How it works"
+              >
+                <HelpCircle className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground hover:text-primary transition-colors" />
+              </Button>
+            </Link>
           </div>
         </div>
       </header>
@@ -123,39 +136,10 @@ export default function HomePage() {
             ))}
           </div>
 
-          {/* Instructions - Mobile Optimized */}
-          <Card className="mb-6 md:mb-8 animate-in slide-in-from-bottom duration-500 delay-900 hover:shadow-md transition-shadow">
-            <CardHeader>
-              <CardTitle className="text-lg md:text-xl text-primary">How It Works</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                <div className="animate-in slide-in-from-left duration-500 delay-1000">
-                  <h4 className="font-semibold mb-2 text-sm md:text-base">Quiz Format</h4>
-                  <ul className="space-y-1 text-xs md:text-sm text-muted-foreground">
-                    <li>• 20 multiple choice questions</li>
-                    <li>• 4 options per question</li>
-                    <li>• 10 minute time limit</li>
-                    <li>• No going back</li>
-                    <li>• Real Farcaster profiles</li>
-                  </ul>
-                </div>
-                <div className="animate-in slide-in-from-right duration-500 delay-1100">
-                  <h4 className="font-semibold mb-2 text-sm md:text-base">Score Categories</h4>
-                  <ul className="space-y-1 text-xs md:text-sm text-muted-foreground">
-                    <li>• 18-20: Farcaster Expert</li>
-                    <li>• 15-17: Active Member</li>
-                    <li>• 12-14: Casual Observer</li>
-                    <li>• 8-11: Getting Started</li>
-                    <li>• 0-7: New to Farcaster</li>
-                  </ul>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+
 
           {/* Start Button - Mobile Optimized */}
-          <div className="text-center animate-in slide-in-from-bottom duration-500 delay-1200">
+          <div className="text-center animate-in slide-in-from-bottom duration-500 delay-800">
             <div className="space-y-4">
               {isAuthenticated ? (
                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-full text-sm text-primary font-medium">
@@ -183,7 +167,7 @@ export default function HomePage() {
                 </p>
               )}
             </div>
-            <p className="text-xs md:text-sm text-muted-foreground mt-3 md:mt-4 animate-in fade-in duration-500 delay-1300">
+            <p className="text-xs md:text-sm text-muted-foreground mt-3 md:mt-4 animate-in fade-in duration-500 delay-900">
               Ready to test your knowledge?
             </p>
           </div>
