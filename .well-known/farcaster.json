@@ -5,5 +5,10 @@
   "icon": "https://brain-three-jet.vercel.app/icon.png",
   "splashBackgroundColor": "#3b82f6",
   "splashTextColor": "#ffffff",
-  "domain": "brain-three-jet.vercel.app"
+  "domain": "brain-three-jet.vercel.app",
+  "verification": {
+    "signature": "PLACEHOLDER_SIGNATURE",
+    "timestamp": "PLACEHOLDER_TIMESTAMP",
+    "fid": "PLACEHOLDER_FID"
+  }
 }
