@@ -151,7 +151,7 @@ export default function ProfilePage() {
     ]
 
     // Add current user to leaderboard if they have scores
-    if (recentScores.length > 0) {
+    if (recentScores.length > 0 && user) {
       const userAggregateScore = recentScores.reduce((sum, score) => sum + score.score, 0)
       const userEntry: LeaderboardEntry = {
         username: user.username,
@@ -264,7 +264,7 @@ export default function ProfilePage() {
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-blue-500" />
-                  Today's Best
+                  Today&apos;s Best
                 </CardTitle>
               </CardHeader>
               <CardContent>

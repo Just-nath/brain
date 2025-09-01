@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Brain, Clock, Users, Trophy, ArrowLeft, CheckCircle } from "lucide-react"
 import Link from "next/link"
 
@@ -152,7 +152,7 @@ export default function HowItWorksPage() {
                   <ul className="space-y-2 text-sm text-muted-foreground">
                     <li className="flex items-start gap-2">
                       <CheckCircle className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                      <span>Make sure you're connected to Farcaster</span>
+                      <span>Make sure you&apos;re connected to Farcaster</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
@@ -173,7 +173,7 @@ export default function HowItWorksPage() {
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                      <span>Don't spend too long on one question</span>
+                      <span>Don&apos;t spend too long on one question</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />

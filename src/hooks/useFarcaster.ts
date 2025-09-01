@@ -7,7 +7,13 @@ interface FarcasterUser {
   displayName: string
   pfpUrl: string
 }
-
+interface ScoreData {
+  score: number
+  totalQuestions: number
+  timeTaken: number
+  date: string
+  percentage: number
+}
 export function useFarcaster() {
   const [user, setUser] = useState<FarcasterUser | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -207,7 +213,7 @@ export function useFarcaster() {
   }, [user])
 
   // Add score to recent scores list
-  const addToRecentScores = useCallback((scoreData: any) => {
+  const addToRecentScores = useCallback((scoreData: ScoreData) => {
     if (!user) return false
     
     const recentKey = `recent_scores_${user.fid}`
