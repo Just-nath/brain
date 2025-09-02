@@ -134,8 +134,8 @@ export default function HomePage() {
               },
               {
                 icon: Trophy,
-                title: "Score & Share",
-                description: "Get your IQ category",
+                title: "Score & Ranking",
+                description: "Get your SimplySimi ranking",
                 delay: "delay-700",
               },
             ].map((card, index) => (

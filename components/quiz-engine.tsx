@@ -16,12 +16,14 @@ import {
   RotateCcw,
   TrendingUp,
   Users,
+  XCircle,
 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useFarcaster } from "../src/hooks/useFarcaster"
-import { generateShareText, generateChallengeText } from "../src/utils/frames"
 
 const QUIZ_TIME_LIMIT = 10 * 60 // 10 minutes in seconds
+const NEYNAR_API_KEY = "3367EB2F-69DE-4AF5-9057-68162A77AED3"
+const MINI_APP_FRAME_LINK = "https://farcaster.xyz/miniapps/w9n2GeLADNIy/brains---farcaster-pfp-quiz"
 
 interface FarcasterUser {
   fid: number
@@ -42,7 +44,7 @@ interface QuizQuestion {
 
 interface QuizEngineProps {
   onComplete: () => void
-  launchingAccount?: string // The account that launched the quiz
+  launchingAccount?: string
 }
 
 export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineProps) {
@@ -57,64 +59,75 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
   const [showContent, setShowContent] = useState(false)
   const [quizData, setQuizData] = useState<QuizQuestion[]>([])
   const [loadingError, setLoadingError] = useState<string | null>(null)
-  const { user, savePersonalBest, getPersonalBest, sdk } = useFarcaster()
+  const [showFeedback, setShowFeedback] = useState(false)
+  const [feedbackMessage, setFeedbackMessage] = useState("")
+  const [isCorrect, setIsCorrect] = useState(false)
+  const { user, savePersonalBest, getPersonalBest } = useFarcaster()
 
+  // Fetch real Farcaster users with proper filtering
   const fetchFarcasterUsers = async (): Promise<FarcasterUser[]> => {
     try {
-      // Use Farcaster SDK if available, otherwise fall back to API
-      if (sdk) {
-        try {
-          // Get real-time user data from Farcaster
-          const response = await sdk.quickAuth.fetch('/me')
-          
-          if (response.ok) {
-            // For now, we'll use the API fallback since the SDK doesn't provide user network data
-            // In a real implementation, you would use the SDK to fetch user's network
-            console.log('Farcaster SDK connected, using API fallback for user data')
-          }
-        } catch (sdkError) {
-          console.log('SDK fetch failed, falling back to API:', sdkError)
-        }
-      }
-
-      // Fallback to API if SDK is not available or fails
-      const apiKey = "3367EB2F-69DE-4AF5-9057-68162A77AED3"
-
-      const response = await fetch(`https://api.neynar.com/v2/farcaster/user/search?q=&limit=100`, {
+      console.log("[v1] Fetching Farcaster users with Neynar API...")
+      
+      // Fetch users with 2000+ followers using Neynar API v2
+      const response = await fetch(`https://api.neynar.com/v2/farcaster/user/search?q=&limit=200`, {
         headers: {
-          Authorization: `Bearer ${apiKey}`,
+          Authorization: `Bearer ${NEYNAR_API_KEY}`,
           "Content-Type": "application/json",
         },
       })
 
       if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`)
+        throw new Error(`Neynar API request failed: ${response.status}`)
       }
 
       const data = await response.json()
+      
+      if (!data.result?.users) {
+        throw new Error("No users found in API response")
+      }
 
-      const users: FarcasterUser[] =
-        data.result?.users?.map((user: { fid: number; username: string; display_name?: string; pfp_url?: string; follower_count?: number; profile?: { bio?: { text?: string } } }) => ({
+      // Filter users: 2000+ followers, valid profile pictures, non-spam
+      const filteredUsers: FarcasterUser[] = data.result.users
+        .filter((user: any) => {
+          // Must have 2000+ followers
+          if (!user.follower_count || user.follower_count < 2000) return false
+          
+          // Must have a valid profile picture URL
+          if (!user.pfp_url || user.pfp_url === "" || user.pfp_url.includes("default")) return false
+          
+          // Must have a username
+          if (!user.username || user.username === "") return false
+          
+          // Basic spam detection: avoid very long usernames or suspicious patterns
+          if (user.username.length > 30) return false
+          if (user.username.includes("bot") || user.username.includes("spam")) return false
+          
+          return true
+        })
+        .map((user: any) => ({
           fid: user.fid,
           username: user.username,
           displayName: user.display_name || user.username,
-          pfpUrl: user.pfp_url || "/abstract-profile.png",
-          followerCount: user.follower_count || 0,
+          pfpUrl: user.pfp_url,
+          followerCount: user.follower_count,
           bio: user.profile?.bio?.text || "",
-        })) || []
+        }))
+        .slice(0, 100) // Take top 100 qualified users
 
-      const filteredUsers = users
+      console.log(`[v1] Filtered ${filteredUsers.length} qualified users`)
 
+      // Add launching account if specified
       if (launchingAccount) {
         try {
           const launchingUserResponse = await fetch(
             `https://api.neynar.com/v2/farcaster/user/by_username?username=${launchingAccount}`,
             {
               headers: {
-                Authorization: `Bearer ${apiKey}`,
+                Authorization: `Bearer ${NEYNAR_API_KEY}`,
                 "Content-Type": "application/json",
               },
-            },
+            }
           )
 
           if (launchingUserResponse.ok) {
@@ -126,7 +139,7 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
                 fid: launchingUser.fid,
                 username: launchingUser.username,
                 displayName: launchingUser.display_name || launchingUser.username,
-                pfpUrl: launchingUser.pfp_url || "/abstract-profile.png",
+                pfpUrl: launchingUser.pfp_url || "/default-pfp.png",
                 followerCount: launchingUser.follower_count || 0,
                 bio: launchingUser.profile?.bio?.text || "",
               }
@@ -134,18 +147,19 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
             }
           }
         } catch (launchingUserError) {
-          console.error("[v0] Error fetching launching user:", launchingUserError)
+          console.error("[v1] Error fetching launching user:", launchingUserError)
         }
       }
 
       if (filteredUsers.length < 20) {
-        throw new Error("Not enough users found")
+        throw new Error("Not enough qualified users found (need at least 20)")
       }
 
-      return filteredUsers.slice(0, 50)
+      return filteredUsers
     } catch (error) {
-      console.error("[v0] Error fetching Farcaster users:", error)
-
+      console.error("[v1] Error fetching Farcaster users:", error)
+      
+      // Fallback to mock data if API fails
       const mockUsers: FarcasterUser[] = [
         {
           fid: 3,
@@ -309,20 +323,29 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
         },
       ]
 
-      const filteredUsers = mockUsers
-
       if (launchingAccount) {
         const launchingUser = mockUsers.find((user) => user.username === launchingAccount)
-        if (launchingUser && !filteredUsers.some((user) => user.username === launchingAccount)) {
-          filteredUsers.unshift(launchingUser)
+        if (launchingUser && !mockUsers.some((user) => user.username === launchingAccount)) {
+          mockUsers.unshift(launchingUser)
         }
       }
 
-      return filteredUsers
+      return mockUsers
     }
   }
 
-  const generateQuizQuestions = (users: FarcasterUser[]): QuizQuestion[] => {
+  // Validate image URLs before using them
+  const validateImageUrl = async (url: string): Promise<boolean> => {
+    try {
+      const response = await fetch(url, { method: 'HEAD' })
+      return response.ok && response.headers.get('content-type')?.startsWith('image/')
+    } catch {
+      return false
+    }
+  }
+
+  // Generate quiz questions with validated images
+  const generateQuizQuestions = async (users: FarcasterUser[]): Promise<QuizQuestion[]> => {
     const questions: QuizQuestion[] = []
     const usedUsers = new Set<string>()
 
@@ -332,11 +355,18 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
       const correctUser = shuffledUsers[i]
       if (usedUsers.has(correctUser.username)) continue
 
+      // Validate the profile picture URL
+      const isValidImage = await validateImageUrl(correctUser.pfpUrl)
+      if (!isValidImage) {
+        console.log(`[v1] Skipping user ${correctUser.username} - invalid image URL`)
+        continue
+      }
+
       usedUsers.add(correctUser.username)
 
       const incorrectOptions: string[] = []
       const availableUsers = users.filter(
-        (u) => u.username !== correctUser.username && !incorrectOptions.includes(u.username),
+        (u) => u.username !== correctUser.username && !incorrectOptions.includes(u.username)
       )
 
       while (incorrectOptions.length < 3 && availableUsers.length > 0) {
@@ -355,48 +385,36 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
         options: shuffledOptions,
         correctUser: correctUser,
       })
+
+      if (questions.length >= 20) break
     }
 
     return questions
   }
 
+  // Load quiz data in background
   useEffect(() => {
     const loadQuizData = async () => {
       try {
         setIsLoading(true)
         setLoadingError(null)
 
-        console.log("[v0] Fetching Farcaster users...")
+        console.log("[v1] Loading quiz data in background...")
         const users = await fetchFarcasterUsers()
-        console.log("[v0] Fetched users:", users.length)
+        console.log(`[v1] Fetched ${users.length} users`)
 
-        console.log("[v0] Generating quiz questions...")
-        const questions = generateQuizQuestions(users)
-        console.log("[v0] Generated questions:", questions.length)
+        const questions = await generateQuizQuestions(users)
+        console.log(`[v1] Generated ${questions.length} questions`)
+
+        if (questions.length < 10) {
+          throw new Error("Not enough valid questions could be generated")
+        }
 
         setQuizData(questions)
-
-        const imagePromises = questions.map((question, index) => {
-          return new Promise<void>((resolve) => {
-            const img = new Image()
-            img.crossOrigin = "anonymous"
-            img.onload = () => resolve()
-            img.onerror = () => {
-              console.log("[v0] Image load error for question:", index)
-              setImageErrors((prev) => new Set(prev).add(index))
-              resolve()
-            }
-            img.src = question.profilePictureUrl
-          })
-        })
-
-        await Promise.all(imagePromises)
-        console.log("[v0] All images preloaded")
-
         setIsLoading(false)
         setTimeout(() => setShowContent(true), 100)
       } catch (error) {
-        console.error("[v0] Error loading quiz data:", error)
+        console.error("[v1] Error loading quiz data:", error)
         setLoadingError(error instanceof Error ? error.message : "Failed to load quiz data")
         setIsLoading(false)
       }
@@ -405,6 +423,7 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
     loadQuizData()
   }, [launchingAccount])
 
+  // Timer logic
   useEffect(() => {
     if (timeRemaining > 0 && !showResults && !isLoading) {
       const timer = setTimeout(() => {
@@ -438,8 +457,21 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
     return "bg-red-50"
   }
 
-  const handleAnswerSelect = (answer: string) => {
+  // Handle answer selection with auto-advance
+  const handleAnswerSelect = async (answer: string) => {
+    if (selectedAnswer || isTransitioning) return
+
     setSelectedAnswer(answer)
+    const correct = answer === quizData[currentQuestion]?.correctAnswer
+    
+    setIsCorrect(correct)
+    setFeedbackMessage(correct ? "Correct! 🎉" : `Incorrect. The answer was ${quizData[currentQuestion]?.correctAnswer}`)
+    setShowFeedback(true)
+
+    // Auto-advance after 1.5 seconds
+    setTimeout(() => {
+      handleNextQuestion()
+    }, 1500)
   }
 
   const handleNextQuestion = () => {
@@ -447,6 +479,7 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
 
     setIsTransitioning(true)
     setShowContent(false)
+    setShowFeedback(false)
 
     setTimeout(() => {
       const newAnswers = [...answers, selectedAnswer]
@@ -497,92 +530,67 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
     return correct
   }
 
-  const getScoreCategory = (score: number) => {
-    if (score >= 18) return "Farcaster Expert"
-    if (score >= 15) return "Active Community Member"
-    if (score >= 12) return "Casual Observer"
-    if (score >= 8) return "Getting Started"
-    return "New to Farcaster"
-  }
-
-  const getCategoryDescription = (category: string) => {
-    switch (category) {
-      case "Farcaster Expert":
-        return "Outstanding! You have deep knowledge of the Farcaster community and its key figures."
-      case "Active Community Member":
-        return "Excellent work! You're clearly engaged with the Farcaster ecosystem."
-      case "Casual Observer":
-        return "Good job! You have solid awareness of prominent community members."
-      case "Getting Started":
-        return "Nice effort! You&apos;re building familiarity with the Farcaster community."
-      default:
-        return "Welcome to Farcaster! There&apos;s a vibrant community waiting to be discovered."
-    }
-  }
-
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case "Farcaster Expert":
-        return "text-green-600 bg-green-50 border-green-200"
-      case "Active Community Member":
-        return "text-blue-600 bg-blue-50 border-blue-200"
-      case "Casual Observer":
-        return "text-yellow-600 bg-yellow-50 border-yellow-200"
-      case "Getting Started":
-        return "text-orange-600 bg-orange-50 border-orange-200"
-      default:
-        return "text-gray-600 bg-gray-50 border-gray-200"
-    }
-  }
-
-  const getPerformanceInsights = () => {
-    const insights = []
-    const score = calculateScore()
-    const percentage = Math.round((score / answers.length) * 100)
-    const timeTaken = QUIZ_TIME_LIMIT - timeRemaining
-    const wasAutoSubmitted = timeRemaining === 0
-    const questionsPerMinute = Math.round((answers.length / (timeTaken / 60)) * 10) / 10
-
+  // SimplySimi ranking system
+  const getSimplySimiRanking = (score: number, totalQuestions: number) => {
+    const percentage = Math.round((score / totalQuestions) * 100)
+    
     if (percentage >= 90) {
-      insights.push("🎯 Perfect accuracy - you know your Farcaster community!")
-    } else if (percentage >= 75) {
-      insights.push("🔥 Strong performance - you're well-connected to the ecosystem")
+      return {
+        level: "OG",
+        message: "SimplySimi says you're a true Farcaster OG! The community flows through your veins 🔥",
+        color: "text-green-600 bg-green-50 border-green-200"
+      }
+    } else if (percentage >= 70) {
+      return {
+        level: "Expert",
+        message: "SimplySimi says you're a Farcaster Expert! You know your way around the protocol 💜",
+        color: "text-blue-600 bg-blue-50 border-blue-200"
+      }
     } else if (percentage >= 50) {
-      insights.push("📈 Solid foundation - keep engaging with the community")
+      return {
+        level: "Regular",
+        message: "SimplySimi says you have solid Farcaster knowledge! You're well-connected 🎯",
+        color: "text-yellow-600 bg-yellow-50 border-yellow-200"
+      }
+    } else if (percentage >= 30) {
+      return {
+        level: "Casual",
+        message: "SimplySimi says you're a casual Farcaster user! Time to dive deeper 📱",
+        color: "text-orange-600 bg-orange-50 border-orange-200"
+      }
     } else {
-      insights.push("🌱 Room to grow - explore more Farcaster profiles")
+      return {
+        level: "Newbie",
+        message: "SimplySimi says I am a newbie, what about you? Welcome to Farcaster! 👋",
+        color: "text-gray-600 bg-gray-50 border-gray-200"
+      }
     }
-
-    if (questionsPerMinute > 1.5) {
-      insights.push("⚡ Lightning fast - you made quick, confident decisions")
-    } else if (questionsPerMinute < 0.8) {
-      insights.push("🤔 Thoughtful approach - you took time to consider each answer")
-    }
-
-    if (wasAutoSubmitted) {
-      insights.push("⏰ Time management challenge - try to pace yourself next time")
-    }
-
-    return insights
   }
 
-  const handleShare = () => {
+  // Farcaster cast sharing
+  const handleFarcasterShare = () => {
     const score = calculateScore()
     const percentage = Math.round((score / answers.length) * 100)
-    const category = getScoreCategory(score)
-    const shareText = `I just scored ${score}/${answers.length} (${percentage}%) on the Brains Farcaster Profile Picture IQ Quiz! I'm a ${category}. Can you beat my score?`
-
-    if (navigator.share) {
-      navigator.share({
-        title: "Brains - Farcaster IQ Quiz Results",
-        text: shareText,
-        url: window.location.origin,
-      })
+    const ranking = getSimplySimiRanking(score, answers.length)
+    
+    const castText = `🧠 I scored ${score}/${answers.length} (${percentage}%) on the Brains Farcaster Profile Picture IQ Quiz!\n\n${ranking.message}\n\nTake the quiz: ${MINI_APP_FRAME_LINK}`
+    
+    // Try to use Farcaster SDK for casting
+    if (typeof window !== 'undefined' && (window as any).farcaster) {
+      try {
+        (window as any).farcaster.cast(castText)
+      } catch (error) {
+        console.error('Farcaster cast failed:', error)
+        // Fallback to clipboard
+        navigator.clipboard.writeText(castText)
+      }
     } else {
-      navigator.clipboard.writeText(`${shareText} ${window.location.origin}`)
+      // Fallback to clipboard
+      navigator.clipboard.writeText(castText)
     }
   }
 
+  // Loading state (no separate page)
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -599,26 +607,13 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
               <>
                 <div className="relative mb-6">
                   <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary/20 border-t-primary mx-auto"></div>
-                  <div
-                    className="absolute inset-0 rounded-full h-16 w-16 border-4 border-transparent border-t-secondary/50 animate-spin mx-auto"
-                    style={{ animationDirection: "reverse", animationDuration: "1.5s" }}
-                  ></div>
                 </div>
-                <h2 className="text-xl font-semibold text-primary mb-2 animate-in slide-in-from-bottom-2 duration-700 delay-200">
-                  Loading Real-Time Farcaster Data
+                <h2 className="text-xl font-semibold text-primary mb-2">
+                  Preparing Your Quiz
                 </h2>
-                <p className="text-muted-foreground animate-in slide-in-from-bottom-2 duration-700 delay-300">
-                  Fetching live profiles from your network...
+                <p className="text-muted-foreground">
+                  Loading real Farcaster profiles...
                 </p>
-                <div className="mt-4 flex justify-center space-x-1">
-                  {[0, 1, 2].map((i) => (
-                    <div
-                      key={i}
-                      className="w-2 h-2 bg-primary rounded-full animate-bounce"
-                      style={{ animationDelay: `${i * 0.2}s` }}
-                    ></div>
-                  ))}
-                </div>
               </>
             )}
           </CardContent>
@@ -642,14 +637,12 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
     )
   }
 
+  // Results page
   if (showResults) {
     const score = calculateScore()
     const percentage = Math.round((score / answers.length) * 100)
-    const category = getScoreCategory(score)
+    const ranking = getSimplySimiRanking(score, answers.length)
     const timeTaken = QUIZ_TIME_LIMIT - timeRemaining
-    const wasAutoSubmitted = timeRemaining === 0
-    const questionsPerMinute = Math.round((answers.length / (timeTaken / 60)) * 10) / 10
-    const averageTimePerQuestion = Math.round(timeTaken / answers.length)
 
     return (
       <div className="min-h-screen bg-background animate-in fade-in duration-700">
@@ -668,7 +661,7 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
                 Quiz Complete!
               </h1>
               <p className="text-lg text-muted-foreground animate-in slide-in-from-bottom duration-500 delay-400">
-                Here&apos;s how you performed on the Brains IQ Quiz
+                Here's how you performed on the Brains IQ Quiz
               </p>
             </div>
           </div>
@@ -676,16 +669,7 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
 
         <main className="container mx-auto px-4 py-8">
           <div className="mx-auto max-w-4xl space-y-8">
-            {wasAutoSubmitted && (
-              <Alert className="border-orange-200 bg-orange-50 animate-in slide-in-from-top duration-500 delay-500">
-                <AlertCircle className="h-4 w-4 text-orange-600" />
-                <AlertDescription className="text-orange-800">
-                  Quiz auto-submitted due to time limit. You answered {answers.length} out of {quizData.length}{" "}
-                  questions.
-                </AlertDescription>
-              </Alert>
-            )}
-
+            {/* Score Display */}
             <Card className="shadow-xl border-2 animate-in zoom-in duration-700 delay-600">
               <CardContent className="p-8">
                 <div className="text-center space-y-6">
@@ -703,163 +687,41 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
                         </div>
                       </div>
                     </div>
-                    <div className="absolute -top-2 -right-2 w-12 h-12 bg-secondary rounded-full flex items-center justify-center shadow-lg animate-in zoom-in duration-500 delay-1300">
-                      <CheckCircle2 className="h-6 w-6 text-secondary-foreground" />
-                    </div>
                   </div>
 
                   <div
-                    className={`inline-block px-6 py-3 rounded-full border-2 font-semibold text-lg ${getCategoryColor(category)} animate-in slide-in-from-bottom duration-500 delay-1400`}
+                    className={`inline-block px-6 py-3 rounded-full border-2 font-semibold text-lg ${ranking.color} animate-in slide-in-from-bottom duration-500 delay-1400`}
                   >
-                    {category}
+                    {ranking.level}
                   </div>
 
                   <p className="text-lg text-muted-foreground max-w-2xl mx-auto text-pretty animate-in fade-in duration-500 delay-1500">
-                    {getCategoryDescription(category)}
+                    {ranking.message}
                   </p>
                 </div>
               </CardContent>
             </Card>
 
-            <div className="grid md:grid-cols-3 gap-6">
-              {[
-                {
-                  icon: Clock,
-                  title: "Time Analysis",
-                  content: [
-                    { label: "Total Time:", value: formatTime(timeTaken), color: "" },
-                    { label: "Avg per Question:", value: `${averageTimePerQuestion}s`, color: "" },
-                    { label: "Questions/Min:", value: questionsPerMinute, color: "" },
-                  ],
-                  delay: "delay-1600",
-                },
-                {
-                  icon: Target,
-                  title: "Accuracy Stats",
-                  content: [
-                    { label: "Correct:", value: score, color: "text-green-600" },
-                    { label: "Incorrect:", value: answers.length - score, color: "text-red-600" },
-                    { label: "Completion:", value: `${Math.round((answers.length / quizData.length) * 100)}%`, color: "" },
-                  ],
-                  delay: "delay-1700",
-                },
-                {
-                  icon: TrendingUp,
-                  title: "Performance",
-                  content: null,
-                  delay: "delay-1800",
-                },
-              ].map((card, index) => (
-                <Card
-                  key={index}
-                  className={`animate-in slide-in-from-bottom duration-500 ${card.delay} hover:shadow-lg transition-shadow`}
-                >
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <card.icon className="h-5 w-5 text-secondary" />
-                      {card.title}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {card.content ? (
-                      card.content.map((item, i) => (
-                        <div key={i} className="flex justify-between">
-                          <span className="text-muted-foreground">{item.label}</span>
-                          <span className={`font-semibold ${item.color || ""}`}>{item.value}</span>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="space-y-3">
-                        <div>
-                          <div className="flex justify-between mb-1">
-                            <span className="text-sm text-muted-foreground">Accuracy</span>
-                            <span className="text-sm font-medium">{percentage}%</span>
-                          </div>
-                          <Progress value={percentage} className="h-2" />
-                        </div>
-                        <div>
-                          <div className="flex justify-between mb-1">
-                            <span className="text-sm text-muted-foreground">Speed</span>
-                            <span className="text-sm font-medium">
-                              {Math.min(100, Math.round((questionsPerMinute / 2) * 100))}%
-                            </span>
-                          </div>
-                          <Progress value={Math.min(100, Math.round((questionsPerMinute / 2) * 100))} className="h-2" />
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            <Card className="animate-in slide-in-from-bottom duration-500 delay-1900">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-secondary" />
-                  Performance Insights
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-2 gap-4">
-                  {getPerformanceInsights().map((insight, index) => (
-                    <div
-                      key={index}
-                      className={`flex items-start gap-3 p-3 bg-muted/50 rounded-lg animate-in slide-in-from-left duration-500`}
-                      style={{ animationDelay: `${2000 + index * 100}ms` }}
-                    >
-                      <div className="text-lg">{insight.split(" ")[0]}</div>
-                      <p className="text-sm text-muted-foreground flex-1">{insight.split(" ").slice(1).join(" ")}</p>
-                    </div>
-                  ))}
+            {/* SimplySimi Ranking Card */}
+            <Card className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200 animate-in slide-in-from-bottom duration-500 delay-1600">
+              <CardContent className="p-6 text-center">
+                <div className="flex items-center justify-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center">
+                    <span className="text-white font-bold text-lg">S</span>
+                  </div>
+                  <h3 className="text-xl font-semibold text-purple-700">SimplySimi's Verdict</h3>
+                </div>
+                <p className="text-lg text-purple-800 mb-4">
+                  {ranking.message}
+                </p>
+                <div className="text-sm text-purple-600">
+                  Share your results and challenge friends to beat your score!
                 </div>
               </CardContent>
             </Card>
 
-            {/* Personal Best Display */}
-            {user && (
-              <Card className="bg-gradient-to-r from-secondary/5 to-primary/5 border-secondary/20 animate-in slide-in-from-bottom duration-500 delay-2200">
-                <CardContent className="p-6">
-                  <div className="text-center space-y-4">
-                    <div className="flex items-center justify-center gap-2">
-                      <Trophy className="h-6 w-6 text-secondary" />
-                      <h3 className="text-lg font-semibold text-secondary">Personal Best</h3>
-                    </div>
-                    {(() => {
-                      const personalBest = getPersonalBest()
-                      if (personalBest) {
-                        return (
-                          <div className="space-y-2">
-                            <div className="text-2xl font-bold text-primary">
-                              {personalBest.score}/{personalBest.totalQuestions} ({personalBest.percentage}%)
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              Best time: {Math.floor(personalBest.timeTaken / 60)}:{(personalBest.timeTaken % 60).toString().padStart(2, '0')}
-                            </div>
-                            {score > personalBest.score || (score === personalBest.score && (QUIZ_TIME_LIMIT - timeRemaining) < personalBest.timeTaken) ? (
-                              <div className="text-green-600 font-medium animate-pulse">
-                                🎉 New Personal Best!
-                              </div>
-                            ) : (
-                              <div className="text-muted-foreground">
-                                Previous best: {new Date(personalBest.date).toLocaleDateString()}
-                              </div>
-                            )}
-                          </div>
-                        )
-                      }
-                      return (
-                        <div className="text-muted-foreground">
-                          This is your first quiz attempt!
-                        </div>
-                      )
-                    })()}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-in slide-in-from-bottom duration-500 delay-2300">
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-in slide-in-from-bottom duration-500 delay-1700">
               <Button
                 size="lg"
                 onClick={onComplete}
@@ -871,79 +733,22 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
               <Button
                 variant="outline"
                 size="lg"
-                onClick={handleShare}
-                className="flex items-center gap-2 px-8 py-4 text-lg font-semibold border-2 hover:bg-secondary/10 hover:border-secondary transition-all duration-200 bg-transparent"
+                onClick={handleFarcasterShare}
+                className="flex items-center gap-2 px-8 py-4 text-lg font-semibold border-2 hover:bg-purple-50 hover:border-purple-300 transition-all duration-200 bg-transparent"
               >
                 <Share2 className="h-5 w-5" />
-                Share Your Score
+                Share Score on Farcaster
               </Button>
             </div>
 
-            {/* Farcaster Sharing Options */}
-            {user && (
-              <Card className="bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20 animate-in slide-in-from-bottom duration-500 delay-2400">
-                <CardContent className="p-6">
-                  <div className="text-center space-y-4">
-                    <div className="flex items-center justify-center gap-2">
-                      <Users className="h-6 w-6 text-primary" />
-                      <h3 className="text-lg font-semibold text-primary">Share on Farcaster</h3>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          const shareText = generateShareText(score, answers.length, percentage, category)
-                          if (navigator.share) {
-                            navigator.share({
-                              title: "Brains Quiz Results",
-                              text: shareText,
-                              url: window.location.origin
-                            })
-                          } else {
-                            navigator.clipboard.writeText(shareText)
-                          }
-                        }}
-                        className="flex items-center gap-2"
-                      >
-                        <Share2 className="h-4 w-4" />
-                        Share Score
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          const challengeText = generateChallengeText(user?.username || 'user')
-                          if (navigator.share) {
-                            navigator.share({
-                              title: "Challenge Friends",
-                              text: challengeText,
-                              url: window.location.origin
-                            })
-                          } else {
-                            navigator.clipboard.writeText(challengeText)
-                          }
-                        }}
-                        className="flex items-center gap-2"
-                      >
-                        <Users className="h-4 w-4" />
-                        Challenge Friends
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            <Card className="bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20 animate-in fade-in duration-500 delay-2400">
+            {/* Frame Link */}
+            <Card className="bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20 animate-in slide-in-from-bottom duration-500 delay-1800">
               <CardContent className="p-6 text-center">
-                <p className="text-lg font-medium text-primary mb-2">
-                  {percentage >= 80 ? "Exceptional work!" : percentage >= 60 ? "Great effort!" : "Keep exploring!"}
+                <p className="text-sm text-muted-foreground mb-2">
+                  Share this mini app with friends:
                 </p>
-                <p className="text-muted-foreground text-pretty">
-                  {percentage >= 80
-                    ? "You&apos;re clearly a dedicated member of the Farcaster community. Share your expertise!"
-                    : percentage >= 60
-                      ? "You have solid knowledge of the community. Keep engaging to learn even more!"
-                      : "The Farcaster community is full of interesting people to discover. Keep exploring!"}
+                <p className="text-primary font-mono text-sm break-all">
+                  {MINI_APP_FRAME_LINK}
                 </p>
               </CardContent>
             </Card>
@@ -953,6 +758,7 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
     )
   }
 
+  // Quiz question display
   const question = quizData[currentQuestion]
   const progress = ((currentQuestion + 1) / quizData.length) * 100
   const hasImageError = imageErrors.has(currentQuestion)
@@ -976,16 +782,6 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
                 Question {currentQuestion + 1} of {quizData.length}
               </div>
               <div className="text-xs text-muted-foreground mt-1">{Math.round(progress)}% Complete</div>
-              {user && (
-                <div className="flex items-center justify-center gap-2 mt-2">
-                  <img
-                    src={user.pfpUrl || '/default-pfp.png'}
-                    alt="Profile"
-                    className="w-6 h-6 rounded-full border border-primary/20"
-                  />
-                  <span className="text-xs text-primary font-medium">@{user.username}</span>
-                </div>
-              )}
             </div>
 
             <div
@@ -1014,7 +810,7 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
       </div>
 
       <main className="container mx-auto px-4 py-8">
-        <div className="mx-auto max-w-3xl">
+        <div className="mx-auto max-w-4xl">
           <div
             className={`transition-all duration-300 ${isTransitioning ? "opacity-0 scale-95" : "opacity-100 scale-100"}`}
           >
@@ -1064,24 +860,32 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
                         }`}
                       >
                         Select the correct Farcaster username from the options below
-                      </p>
+                      </h2>
                     </div>
                   </div>
                 </div>
 
+                {/* 2x2 Grid Layout for Quiz Options */}
                 <div className="p-8">
-                  <div className="space-y-4 mb-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                     {question?.options.map((option, index) => {
                       const isSelected = selectedAnswer === option
                       const optionLetter = String.fromCharCode(65 + index)
+                      const isCorrect = option === question.correctAnswer
+                      const showCorrectAnswer = selectedAnswer && showFeedback
 
                       return (
                         <button
                           key={option}
                           onClick={() => handleAnswerSelect(option)}
+                          disabled={selectedAnswer !== null || isTransitioning}
                           className={`group w-full p-6 text-left rounded-xl border-2 transition-all duration-200 transform hover:scale-[1.02] hover:shadow-md ${
                             isSelected
-                              ? "border-secondary bg-secondary/10 shadow-lg scale-[1.02]"
+                              ? isCorrect
+                                ? "border-green-500 bg-green-50 shadow-lg scale-[1.02]"
+                                : "border-red-500 bg-red-50 shadow-lg scale-[1.02]"
+                              : showCorrectAnswer && isCorrect
+                              ? "border-green-500 bg-green-50"
                               : "border-border hover:border-secondary/50 hover:bg-secondary/5 hover:shadow-sm"
                           } ${showContent ? "animate-in slide-in-from-left" : ""}`}
                           style={{ animationDelay: `${500 + index * 100}ms` }}
@@ -1090,12 +894,22 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
                             <div
                               className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg transition-all duration-200 ${
                                 isSelected
-                                  ? "bg-secondary text-secondary-foreground shadow-md scale-110"
+                                  ? isCorrect
+                                    ? "bg-green-500 text-white shadow-md scale-110"
+                                    : "bg-red-500 text-white shadow-md scale-110"
+                                  : showCorrectAnswer && isCorrect
+                                  ? "bg-green-500 text-white"
                                   : "bg-muted text-muted-foreground group-hover:bg-secondary/20 group-hover:text-secondary group-hover:scale-105"
                               }`}
                             >
                               {isSelected ? (
-                                <CheckCircle2 className="h-6 w-6 animate-in zoom-in duration-200" />
+                                isCorrect ? (
+                                  <CheckCircle2 className="h-6 w-6 animate-in zoom-in duration-200" />
+                                ) : (
+                                  <XCircle className="h-6 w-6 animate-in zoom-in duration-200" />
+                                )
+                              ) : showCorrectAnswer && isCorrect ? (
+                                <CheckCircle2 className="h-6 w-6" />
                               ) : (
                                 optionLetter
                               )}
@@ -1105,7 +919,11 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
                               <span
                                 className={`text-lg font-medium transition-colors duration-200 ${
                                   isSelected
-                                    ? "text-secondary font-semibold"
+                                    ? isCorrect
+                                      ? "text-green-700 font-semibold"
+                                      : "text-red-700 font-semibold"
+                                    : showCorrectAnswer && isCorrect
+                                    ? "text-green-700 font-semibold"
                                     : "text-foreground group-hover:text-secondary"
                                 }`}
                               >
@@ -1115,7 +933,9 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
 
                             {isSelected && (
                               <div className="flex-shrink-0 animate-in zoom-in duration-200">
-                                <div className="w-3 h-3 bg-secondary rounded-full animate-pulse"></div>
+                                <div className={`w-3 h-3 rounded-full animate-pulse ${
+                                  isCorrect ? "bg-green-500" : "bg-red-500"
+                                }`}></div>
                               </div>
                             )}
                           </div>
@@ -1124,38 +944,25 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
                     })}
                   </div>
 
-                  <div
-                    className={`text-center space-y-4 transition-all duration-500 ${
-                      showContent ? "animate-in slide-in-from-bottom delay-900" : ""
-                    }`}
-                  >
-                    <Button
-                      size="lg"
-                      onClick={handleNextQuestion}
-                      disabled={!selectedAnswer || isTransitioning}
-                      className={`px-16 py-4 text-lg font-semibold transition-all duration-200 ${
-                        selectedAnswer && !isTransitioning
-                          ? "shadow-lg hover:shadow-xl transform hover:scale-105"
-                          : "opacity-50 cursor-not-allowed"
-                      }`}
-                    >
-                      {currentQuestion < quizData.length - 1 ? "Next Question" : "Finish Quiz"}
-                    </Button>
-
-                    {!selectedAnswer && !isTransitioning && (
-                      <p className="text-sm text-muted-foreground animate-pulse">Please select an answer to continue</p>
-                    )}
-
-                    {selectedAnswer && !isTransitioning && (
-                      <p className="text-sm text-secondary font-medium animate-in fade-in duration-300">
-                        Answer selected: {selectedAnswer}
+                  {/* Feedback Message */}
+                  {showFeedback && (
+                    <div className={`text-center p-4 rounded-lg mb-6 animate-in fade-in duration-300 ${
+                      isCorrect ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"
+                    }`}>
+                      <p className={`font-medium ${isCorrect ? "text-green-700" : "text-red-700"}`}>
+                        {feedbackMessage}
                       </p>
-                    )}
+                    </div>
+                  )}
 
-                    {isTransitioning && (
-                      <p className="text-sm text-muted-foreground animate-pulse">Loading next question...</p>
-                    )}
-                  </div>
+                  {/* Auto-advance indicator */}
+                  {selectedAnswer && (
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground animate-pulse">
+                        Auto-advancing to next question...
+                      </p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -1167,8 +974,7 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
             }`}
           >
             <p className="text-sm text-muted-foreground">
-              <span className="font-medium">Tip:</span> Trust your first instinct - you can&apos;t go back to previous
-              questions
+              <span className="font-medium">Tip:</span> Trust your first instinct - you can't go back to previous questions
             </p>
           </div>
         </div>
