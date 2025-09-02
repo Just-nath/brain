@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Brain, Clock, Users, Trophy, HelpCircle } from "lucide-react"
@@ -84,10 +85,13 @@ export default function HomePage() {
                     className="h-10 w-10 md:h-12 md:w-12 rounded-full hover:bg-primary/10 transition-colors animate-in zoom-in duration-500 delay-500"
                     title="View Profile"
                   >
-                    <img
+                    <Image
                       src={user.pfpUrl}
                       alt={`${user.displayName}'s profile`}
+                      width={32}
+                      height={32}
                       className="h-6 w-6 md:h-8 md:w-8 rounded-full object-cover"
+                      unoptimized
                     />
                   </Button>
                 </Link>
@@ -103,10 +107,13 @@ export default function HomePage() {
           {/* Hero Section with Brain Image */}
           <div className="text-center mb-8 md:mb-12">
             <div className="mb-6 animate-in zoom-in duration-700 delay-200">
-              <img
+              <Image
                 src="/icon.png"
                 alt="Brains - Farcaster PFP Quiz icon representing intelligence and knowledge"
+                width={128}
+                height={128}
                 className="w-24 h-24 md:w-32 md:h-32 mx-auto rounded-full shadow-lg hover:scale-110 transition-transform duration-300"
+                priority
               />
             </div>
             <h2 className="text-2xl md:text-4xl font-bold text-primary mb-3 md:mb-4 text-balance animate-in slide-in-from-bottom duration-700 delay-400">

@@ -154,40 +154,6 @@ export function useFarcaster() {
     return saved ? JSON.parse(saved) : null
   }, [user])
 
-  // Save user's personal best score
-  const savePersonalBest = useCallback((score: number, totalQuestions: number, timeTaken: number) => {
-    if (!user) return false
-    
-    const key = `personal_best_${user.fid}`
-    const currentBest = getPersonalBest()
-    
-    const scoreData = {
-      score,
-      totalQuestions,
-      timeTaken,
-      date: new Date().toISOString(),
-      percentage: Math.round((score / totalQuestions) * 100)
-    }
-    
-    if (!currentBest || score > currentBest.score || (score === currentBest.score && timeTaken < currentBest.timeTaken)) {
-      localStorage.setItem(key, JSON.stringify(scoreData))
-      
-      // Also save as daily score if it's better
-      saveDailyScore(score, totalQuestions, timeTaken)
-      
-      // Add to recent scores
-      addToRecentScores(scoreData)
-      
-      return true
-    }
-    
-    // Even if not personal best, still save daily and recent scores
-    saveDailyScore(score, totalQuestions, timeTaken)
-    addToRecentScores(scoreData)
-    
-    return false
-  }, [user, getPersonalBest])
-
   // Save daily score (best score for today)
   const saveDailyScore = useCallback((score: number, totalQuestions: number, timeTaken: number) => {
     if (!user) return false
@@ -229,6 +195,34 @@ export function useFarcaster() {
     localStorage.setItem(recentKey, JSON.stringify(updatedRecent))
     return true
   }, [user])
+
+  // Save user's personal best score
+  const savePersonalBest = useCallback((score: number, totalQuestions: number, timeTaken: number) => {
+    if (!user) return false
+    
+    const key = `personal_best_${user.fid}`
+    const currentBest = getPersonalBest()
+    
+    const scoreData = {
+      score,
+      totalQuestions,
+      timeTaken,
+      date: new Date().toISOString(),
+      percentage: Math.round((score / totalQuestions) * 100)
+    }
+    
+    if (!currentBest || score > currentBest.score || (score === currentBest.score && timeTaken < currentBest.timeTaken)) {
+      localStorage.setItem(key, JSON.stringify(scoreData))
+      saveDailyScore(score, totalQuestions, timeTaken)
+      addToRecentScores(scoreData)
+      return true
+    }
+    
+    saveDailyScore(score, totalQuestions, timeTaken)
+    addToRecentScores(scoreData)
+    return false
+  }, [user, getPersonalBest, saveDailyScore, addToRecentScores])
+
 
   // Initialize auth on mount
   useEffect(() => {

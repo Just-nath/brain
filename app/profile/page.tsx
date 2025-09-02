@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Brain, Trophy, Target, TrendingUp, ArrowLeft, Calendar, Award, Users } from "lucide-react"
+import Image from "next/image"
 import Link from "next/link"
 import { useFarcaster } from "@/src/hooks/useFarcaster"
 
@@ -32,14 +33,7 @@ export default function ProfilePage() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    if (user) {
-      loadUserData()
-      loadLeaderboard()
-    }
-  }, [user])
-
-  const loadUserData = () => {
+  const loadUserData = useCallback(() => {
     if (!user) return
 
     // Load personal best
@@ -63,9 +57,9 @@ export default function ProfilePage() {
     if (recentScores) {
       setRecentScores(JSON.parse(recentScores).slice(0, 10))
     }
-  }
+  }, [user])
 
-  const loadLeaderboard = () => {
+  const loadLeaderboard = useCallback(() => {
     // Simulate leaderboard data - in a real app, this would come from a backend
     const mockLeaderboard: LeaderboardEntry[] = [
       {
@@ -173,7 +167,14 @@ export default function ProfilePage() {
     }
     
     setIsLoading(false)
-  }
+  }, [recentScores, user])
+
+  useEffect(() => {
+    if (user) {
+      loadUserData()
+      loadLeaderboard()
+    }
+  }, [user, loadUserData, loadLeaderboard])
 
   const getScoreCategory = (score: number) => {
     if (score >= 18) return { name: "Farcaster Expert", color: "text-green-600", bg: "bg-green-100" }
@@ -237,10 +238,13 @@ export default function ProfilePage() {
           {/* Profile Header */}
           <div className="text-center mb-8 md:mb-12">
             <div className="mb-6">
-              <img
+              <Image
                 src={user.pfpUrl}
                 alt={`${user.displayName}'s profile picture`}
-                className="w-24 h-24 md:w-32 md:h-32 mx-auto rounded-full shadow-lg border-4 border-primary/20"
+                width={128}
+                height={128}
+                className="w-24 h-24 md:w-32 md:h-32 mx-auto rounded-full shadow-lg border-4 border-primary/20 object-cover"
+                unoptimized
               />
             </div>
             <h2 className="text-2xl md:text-4xl font-bold text-primary mb-2">
@@ -392,10 +396,13 @@ export default function ProfilePage() {
                           <div className="text-lg font-bold text-muted-foreground w-6">
                             {index + 1}
                           </div>
-                          <img
+                          <Image
                             src={entry.pfpUrl}
                             alt={`${entry.displayName}'s profile`}
-                            className="w-8 h-8 rounded-full"
+                            width={32}
+                            height={32}
+                            className="w-8 h-8 rounded-full object-cover"
+                            unoptimized
                           />
                           <div className="flex-1">
                             <div className="font-semibold text-sm">{entry.displayName}</div>

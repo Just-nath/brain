@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import {
   Clock,
@@ -10,15 +10,13 @@ import {
   AlertCircle,
   CheckCircle2,
   Trophy,
-  Target,
-  Zap,
+  
   Share2,
   RotateCcw,
-  TrendingUp,
-  Users,
+  
   XCircle,
 } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import Image from "next/image"
 import { useFarcaster } from "../src/hooks/useFarcaster"
 
 const QUIZ_TIME_LIMIT = 10 * 60 // 10 minutes in seconds
@@ -62,60 +60,47 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
   const [showFeedback, setShowFeedback] = useState(false)
   const [feedbackMessage, setFeedbackMessage] = useState("")
   const [isCorrect, setIsCorrect] = useState(false)
-  const { user, savePersonalBest, getPersonalBest } = useFarcaster()
+  const { user, savePersonalBest } = useFarcaster()
 
-  // Fetch real Farcaster users with proper filtering
-  const fetchFarcasterUsers = async (): Promise<FarcasterUser[]> => {
+  // Fetch real Farcaster users with proper filtering (via server API to avoid exposing API key)
+  const fetchFarcasterUsers = useCallback(async (): Promise<FarcasterUser[]> => {
     try {
-      console.log("[v1] Fetching Farcaster users with Neynar API...")
-      
-      // Fetch users with 2000+ followers using Neynar API v2
-      const response = await fetch(`https://api.neynar.com/v2/farcaster/user/search?q=&limit=200`, {
-        headers: {
-          Authorization: `Bearer ${NEYNAR_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-      })
+      console.log("[v1] Fetching Farcaster users from /api/users...")
+      const response = await fetch(`/api/users?count=100`, { cache: 'no-store' })
 
       if (!response.ok) {
-        throw new Error(`Neynar API request failed: ${response.status}`)
+        throw new Error(`Users API request failed: ${response.status}`)
       }
 
-      const data = await response.json()
-      
-      if (!data.result?.users) {
+      const data: unknown = await response.json()
+      const usersArray = (data as { users?: unknown }).users
+      if (!Array.isArray(usersArray)) {
         throw new Error("No users found in API response")
       }
 
-      // Filter users: 2000+ followers, valid profile pictures, non-spam
-      const filteredUsers: FarcasterUser[] = data.result.users
-        .filter((user: any) => {
-          // Must have 2000+ followers
-          if (!user.follower_count || user.follower_count < 2000) return false
-          
-          // Must have a valid profile picture URL
-          if (!user.pfp_url || user.pfp_url === "" || user.pfp_url.includes("default")) return false
-          
-          // Must have a username
-          if (!user.username || user.username === "") return false
-          
-          // Basic spam detection: avoid very long usernames or suspicious patterns
-          if (user.username.length > 30) return false
-          if (user.username.includes("bot") || user.username.includes("spam")) return false
-          
-          return true
+      const filteredUsers: FarcasterUser[] = usersArray
+        .map((userRaw: unknown) => {
+          const user = userRaw as {
+            fid: number
+            username: string
+            display_name?: string
+            pfp_url?: string
+            follower_count?: number
+            profile?: { pfp?: { url?: string }, bio?: { text?: string } }
+          }
+          return ({
+            fid: user.fid,
+            username: user.username,
+            displayName: user.display_name || user.username,
+            pfpUrl: user.pfp_url || user.profile?.pfp?.url || "",
+            followerCount: user.follower_count || 0,
+            bio: user.profile?.bio?.text || "",
+          })
         })
-        .map((user: any) => ({
-          fid: user.fid,
-          username: user.username,
-          displayName: user.display_name || user.username,
-          pfpUrl: user.pfp_url,
-          followerCount: user.follower_count,
-          bio: user.profile?.bio?.text || "",
-        }))
-        .slice(0, 100) // Take top 100 qualified users
+        .filter((u: FarcasterUser) => !!u.username && !!u.pfpUrl)
+        .slice(0, 100)
 
-      console.log(`[v1] Filtered ${filteredUsers.length} qualified users`)
+      console.log(`[v1] Received ${filteredUsers.length} qualified users`)
 
       // Add launching account if specified
       if (launchingAccount) {
@@ -332,20 +317,20 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
 
       return mockUsers
     }
-  }
+  }, [launchingAccount])
 
   // Validate image URLs before using them
-  const validateImageUrl = async (url: string): Promise<boolean> => {
+  const validateImageUrl = useCallback(async (url: string): Promise<boolean> => {
     try {
       const response = await fetch(url, { method: 'HEAD' })
-      return response.ok && response.headers.get('content-type')?.startsWith('image/')
+      return response.ok && Boolean(response.headers.get('content-type')?.startsWith('image/'))
     } catch {
       return false
     }
-  }
+  }, [])
 
   // Generate quiz questions with validated images
-  const generateQuizQuestions = async (users: FarcasterUser[]): Promise<QuizQuestion[]> => {
+  const generateQuizQuestions = useCallback(async (users: FarcasterUser[]): Promise<QuizQuestion[]> => {
     const questions: QuizQuestion[] = []
     const usedUsers = new Set<string>()
 
@@ -390,11 +375,10 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
     }
 
     return questions
-  }
+  }, [validateImageUrl])
 
   // Load quiz data in background
-  useEffect(() => {
-    const loadQuizData = async () => {
+  const loadQuizData = useCallback(async () => {
       try {
         setIsLoading(true)
         setLoadingError(null)
@@ -419,9 +403,11 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
         setIsLoading(false)
       }
     }
+  , [fetchFarcasterUsers, generateQuizQuestions])
 
+  useEffect(() => {
     loadQuizData()
-  }, [launchingAccount])
+  }, [loadQuizData, launchingAccount])
 
   // Timer logic
   useEffect(() => {
@@ -520,7 +506,7 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
     [answers, selectedAnswer, user, quizData, timeRemaining, savePersonalBest],
   )
 
-  const calculateScore = () => {
+  const calculateScore = useCallback(() => {
     let correct = 0
     answers.forEach((answer, index) => {
       if (answer === quizData[index]?.correctAnswer) {
@@ -528,34 +514,34 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
       }
     })
     return correct
-  }
+  }, [answers, quizData])
 
   // SimplySimi ranking system
-  const getSimplySimiRanking = (score: number, totalQuestions: number) => {
+  const getSimplySimiRanking = useCallback((score: number, totalQuestions: number) => {
     const percentage = Math.round((score / totalQuestions) * 100)
     
     if (percentage >= 90) {
       return {
         level: "OG",
-        message: "SimplySimi says you're a true Farcaster OG! The community flows through your veins 🔥",
+        message: "SimplySimi says you\'re a true Farcaster OG! The community flows through your veins 🔥",
         color: "text-green-600 bg-green-50 border-green-200"
       }
     } else if (percentage >= 70) {
       return {
         level: "Expert",
-        message: "SimplySimi says you're a Farcaster Expert! You know your way around the protocol 💜",
+        message: "SimplySimi says you\'re a Farcaster Expert! You know your way around the protocol 💜",
         color: "text-blue-600 bg-blue-50 border-blue-200"
       }
     } else if (percentage >= 50) {
       return {
         level: "Regular",
-        message: "SimplySimi says you have solid Farcaster knowledge! You're well-connected 🎯",
+        message: "SimplySimi says you have solid Farcaster knowledge! You\'re well-connected 🎯",
         color: "text-yellow-600 bg-yellow-50 border-yellow-200"
       }
     } else if (percentage >= 30) {
       return {
         level: "Casual",
-        message: "SimplySimi says you're a casual Farcaster user! Time to dive deeper 📱",
+        message: "SimplySimi says you\'re a casual Farcaster user! Time to dive deeper 📱",
         color: "text-orange-600 bg-orange-50 border-orange-200"
       }
     } else {
@@ -565,10 +551,10 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
         color: "text-gray-600 bg-gray-50 border-gray-200"
       }
     }
-  }
+  }, [])
 
   // Farcaster cast sharing
-  const handleFarcasterShare = () => {
+  const handleFarcasterShare = useCallback(() => {
     const score = calculateScore()
     const percentage = Math.round((score / answers.length) * 100)
     const ranking = getSimplySimiRanking(score, answers.length)
@@ -576,19 +562,23 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
     const castText = `🧠 I scored ${score}/${answers.length} (${percentage}%) on the Brains Farcaster Profile Picture IQ Quiz!\n\n${ranking.message}\n\nTake the quiz: ${MINI_APP_FRAME_LINK}`
     
     // Try to use Farcaster SDK for casting
-    if (typeof window !== 'undefined' && (window as any).farcaster) {
-      try {
-        (window as any).farcaster.cast(castText)
-      } catch (error) {
-        console.error('Farcaster cast failed:', error)
-        // Fallback to clipboard
-        navigator.clipboard.writeText(castText)
+    if (typeof window !== 'undefined') {
+      type FarcasterWindow = Window & { farcaster?: { cast: (text: string) => void } }
+      const w = window as unknown as FarcasterWindow
+      if (w.farcaster) {
+        try {
+          w.farcaster.cast(castText)
+        } catch (error) {
+          console.error('Farcaster cast failed:', error)
+          navigator.clipboard.writeText(castText)
+        }
+        return
       }
     } else {
       // Fallback to clipboard
       navigator.clipboard.writeText(castText)
     }
-  }
+  }, [answers, getSimplySimiRanking, calculateScore])
 
   // Loading state (no separate page)
   if (isLoading) {
@@ -642,7 +632,7 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
     const score = calculateScore()
     const percentage = Math.round((score / answers.length) * 100)
     const ranking = getSimplySimiRanking(score, answers.length)
-    const timeTaken = QUIZ_TIME_LIMIT - timeRemaining
+    // const timeTaken = QUIZ_TIME_LIMIT - timeRemaining
 
     return (
       <div className="min-h-screen bg-background animate-in fade-in duration-700">
@@ -661,7 +651,7 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
                 Quiz Complete!
               </h1>
               <p className="text-lg text-muted-foreground animate-in slide-in-from-bottom duration-500 delay-400">
-                Here's how you performed on the Brains IQ Quiz
+                Here&apos;s how you performed on the Brains IQ Quiz
               </p>
             </div>
           </div>
@@ -709,7 +699,7 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
                   <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center">
                     <span className="text-white font-bold text-lg">S</span>
                   </div>
-                  <h3 className="text-xl font-semibold text-purple-700">SimplySimi's Verdict</h3>
+                  <h3 className="text-xl font-semibold text-purple-700">SimplySimi&apos;s Verdict</h3>
                 </div>
                 <p className="text-lg text-purple-800 mb-4">
                   {ranking.message}
@@ -827,13 +817,16 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
                         </div>
                       ) : (
                         <div className="relative inline-block">
-                          <img
+                          <Image
                             src={question?.profilePictureUrl || "/placeholder.svg"}
                             alt="Profile picture to identify"
+                            width={160}
+                            height={160}
                             className={`w-40 h-40 rounded-full mx-auto border-4 border-primary/20 shadow-xl object-cover ring-4 ring-primary/10 transition-all duration-500 hover:scale-105 hover:shadow-2xl ${
                               showContent ? "animate-in zoom-in" : ""
                             }`}
                             onError={() => setImageErrors((prev) => new Set(prev).add(currentQuestion))}
+                            unoptimized
                           />
                           <div
                             className={`absolute -bottom-2 -right-2 w-8 h-8 bg-primary rounded-full flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110 ${
@@ -854,7 +847,7 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
                       >
                         Who is the owner of this profile picture?
                       </h2>
-                      <p
+                      <h2
                         className={`text-muted-foreground text-lg transition-all duration-500 ${
                           showContent ? "animate-in slide-in-from-bottom delay-400" : ""
                         }`}
@@ -974,7 +967,7 @@ export default function QuizEngine({ onComplete, launchingAccount }: QuizEngineP
             }`}
           >
             <p className="text-sm text-muted-foreground">
-              <span className="font-medium">Tip:</span> Trust your first instinct - you can't go back to previous questions
+              <span className="font-medium">Tip:</span> Trust your first instinct - you can&apos;t go back to previous questions
             </p>
           </div>
         </div>
