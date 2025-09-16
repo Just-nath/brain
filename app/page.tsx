@@ -12,7 +12,7 @@ import Link from "next/link"
 export default function HomePage() {
   const [quizStarted, setQuizStarted] = useState(false)
   const [launchingAccount, setLaunchingAccount] = useState<string | undefined>(undefined)
-  const { isAuthenticated, user } = useFarcaster()
+  const { isAuthenticated, user, isInMiniApp, markReady } = useFarcaster()
 
   useEffect(() => {
     // Check URL parameters for launching account
@@ -30,6 +30,15 @@ export default function HomePage() {
     // - Session storage
     // - Other authentication methods
   }, [])
+
+  // Mark app as ready when quiz starts in miniapp context
+  useEffect(() => {
+    if (quizStarted && isInMiniApp) {
+      markReady({
+        disableNativeGestures: false // Allow native gestures for quiz interaction
+      })
+    }
+  }, [quizStarted, isInMiniApp, markReady])
 
   if (quizStarted) {
     return (

@@ -4,6 +4,7 @@ import { generateQuizDataAsync, QuizQuestion } from "@/src/utils/farcaster"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { AlertCircle } from "lucide-react"
+import { useFarcaster } from "@/src/hooks/useFarcaster"
 
 interface QuizProps {
   onComplete: () => void
@@ -21,6 +22,8 @@ export default function Quiz({ onComplete }: QuizProps) {
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set())
   const [showFeedback, setShowFeedback] = useState(false)
   const [feedbackMessage, setFeedbackMessage] = useState("")
+  
+  const { isInMiniApp, markReady, updatePersonalBest, personalBest } = useFarcaster()
 
   useEffect(() => {
     const loadQuiz = async () => {
@@ -38,6 +41,15 @@ export default function Quiz({ onComplete }: QuizProps) {
 
     loadQuiz()
   }, [])
+
+  // Mark quiz as ready when loaded in miniapp context
+  useEffect(() => {
+    if (!loading && quizData.length > 0 && isInMiniApp) {
+      markReady({
+        disableNativeGestures: false // Allow native gestures for quiz interaction
+      })
+    }
+  }, [loading, quizData.length, isInMiniApp, markReady])
 
   const [answers, setAnswers] = useState<{ [key: number]: string }>({})
 
@@ -103,11 +115,29 @@ export default function Quiz({ onComplete }: QuizProps) {
     const score = calculateScore()
     const percentage = Math.round((score / quizData.length) * 100)
     const ranking = getSimplySimiRanking(score, quizData.length)
+    
+    // Update personal best if this score is better
+    const isNewPersonalBest = personalBest === null || score > personalBest
+    if (isNewPersonalBest) {
+      updatePersonalBest(score)
+    }
 
     return (
       <div className="min-h-screen bg-background p-8">
         <h1 className="text-4xl font-bold text-center mb-4">Quiz Complete!</h1>
         <p className="text-center mb-6">You scored {score}/{quizData.length} ({percentage}%)</p>
+        
+        {personalBest !== null && (
+          <p className="text-center mb-4 text-sm text-muted-foreground">
+            Personal Best: {personalBest}/{quizData.length}
+          </p>
+        )}
+        
+        {isNewPersonalBest && (
+          <p className="text-center mb-4 text-lg font-semibold text-green-600">
+            🎉 New Personal Best! 🎉
+          </p>
+        )}
 
         <Card className={`max-w-md mx-auto mb-6 ${ranking.color}`}>
           <CardContent>

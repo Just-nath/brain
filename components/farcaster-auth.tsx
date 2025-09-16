@@ -13,7 +13,7 @@ interface FarcasterAuthProps {
 }
 
 export default function FarcasterAuth({ children, onComplete }: FarcasterAuthProps) {
-  const { isAuthenticated, isLoading, error, signIn, isInFrame } = useFarcaster()
+  const { isAuthenticated, isLoading, error, signIn, isInFrame, isInMiniApp, markReady } = useFarcaster()
 
   // Auto-sign in when component mounts
   useEffect(() => {
@@ -22,6 +22,15 @@ export default function FarcasterAuth({ children, onComplete }: FarcasterAuthPro
       signIn()
     }
   }, [isAuthenticated, isLoading, signIn])
+
+  // Mark auth as ready when authenticated in miniapp context
+  useEffect(() => {
+    if (isAuthenticated && isInMiniApp) {
+      markReady({
+        disableNativeGestures: false // Allow native gestures for auth interaction
+      })
+    }
+  }, [isAuthenticated, isInMiniApp, markReady])
 
   // If user is authenticated, show the quiz
   if (isAuthenticated) {

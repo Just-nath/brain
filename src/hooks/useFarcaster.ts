@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { sdk, type ReadyOptions } from "@farcaster/miniapp-sdk"
 
 export interface FarcasterUser {
   fid: number
@@ -20,6 +21,8 @@ interface UseFarcasterReturn {
   isInFrame: boolean
   personalBest: number | null
   updatePersonalBest: (score: number) => void
+  isInMiniApp: boolean
+  markReady: (options?: Partial<ReadyOptions>) => Promise<void>
 }
 
 export function useFarcaster(): UseFarcasterReturn {
@@ -28,11 +31,37 @@ export function useFarcaster(): UseFarcasterReturn {
   const [user, setUser] = useState<FarcasterUser | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [personalBest, setPersonalBest] = useState<number | null>(null)
+  const [isInMiniApp, setIsInMiniApp] = useState(false)
 
   // Check if running in Farcaster frame
   const isInFrame = typeof window !== 'undefined' && 
     (window.location !== window.parent.location || 
      window.navigator.userAgent.includes('Farcaster'))
+
+  // Initialize SDK and check if in miniapp context
+  useEffect(() => {
+    const initializeSDK = async () => {
+      try {
+        // Check if we're in a Farcaster miniapp
+        const inMiniApp = await sdk.isInMiniApp()
+        setIsInMiniApp(inMiniApp)
+        
+        console.log('[Farcaster SDK] Running in miniapp context:', inMiniApp)
+        
+        // If we're in a miniapp, mark as ready
+        if (inMiniApp) {
+          await sdk.actions.ready({
+            disableNativeGestures: false // Allow native gestures by default
+          })
+          console.log('[Farcaster SDK] Miniapp marked as ready')
+        }
+      } catch (err) {
+        console.error('[Farcaster SDK] Failed to initialize:', err)
+      }
+    }
+
+    initializeSDK()
+  }, [])
 
   // Load user data from localStorage on mount
   useEffect(() => {
@@ -103,6 +132,17 @@ export function useFarcaster(): UseFarcasterReturn {
     }
   }, [personalBest])
 
+  const markReady = useCallback(async (options?: Partial<ReadyOptions>) => {
+    try {
+      if (isInMiniApp) {
+        await sdk.actions.ready(options)
+        console.log('[Farcaster SDK] Manually marked as ready with options:', options)
+      }
+    } catch (err) {
+      console.error('[Farcaster SDK] Failed to mark ready:', err)
+    }
+  }, [isInMiniApp])
+
   return {
     isAuthenticated,
     isLoading,
@@ -112,6 +152,8 @@ export function useFarcaster(): UseFarcasterReturn {
     signOut,
     isInFrame,
     personalBest,
-    updatePersonalBest
+    updatePersonalBest,
+    isInMiniApp,
+    markReady
   }
 }
