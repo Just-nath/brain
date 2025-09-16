@@ -1,9 +1,20 @@
 {
   "name": "Brains - Farcaster PFP Quiz",
   "version": "1.0.0",
-  "description": "Test your knowledge of Farcaster community members",
-  "icon": "https://brain-three-jet.vercel.app/icon.png",
-  "splashBackgroundColor": "#3b82f6",
+  "description": "Test your knowledge of Farcaster community members. Identify profiles from their pictures and compete with friends!",
+  "icon": "/icon.png",
+  "splashBackgroundColor": "#8B5CF6",
   "splashTextColor": "#ffffff",
-  "domain": "brain-three-jet.vercel.app"
+  "splashImage": "/artificial-brain.svg",
+  "domain": "brains.vercel.app",
+  "homeUrl": "https://brains.vercel.app",
+  "frameUrl": "https://brains.vercel.app/frame",
+  "apiUrl": "https://brains.vercel.app/api",
+  "permissions": [
+    "user:read",
+    "cast:read",
+    "cast:write"
+  ],
+  "categories": ["games", "education", "social"],
+  "tags": ["quiz", "farcaster", "community", "brain", "knowledge"]
 }

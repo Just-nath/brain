@@ -1,246 +1,117 @@
-import { useState, useEffect, useCallback } from 'react'
-import { sdk } from '@farcaster/frame-sdk'
+"use client"
 
-interface FarcasterUser {
+import { useState, useEffect, useCallback } from "react"
+
+export interface FarcasterUser {
   fid: number
   username: string
   displayName: string
   pfpUrl: string
+  followerCount?: number
 }
-interface ScoreData {
-  score: number
-  totalQuestions: number
-  timeTaken: number
-  date: string
-  percentage: number
+
+interface UseFarcasterReturn {
+  isAuthenticated: boolean
+  isLoading: boolean
+  user: FarcasterUser | null
+  error: string | null
+  signIn: () => void
+  signOut: () => void
+  isInFrame: boolean
+  personalBest: number | null
+  updatePersonalBest: (score: number) => void
 }
-export function useFarcaster() {
-  const [user, setUser] = useState<FarcasterUser | null>(null)
+
+export function useFarcaster(): UseFarcasterReturn {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [user, setUser] = useState<FarcasterUser | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [personalBest, setPersonalBest] = useState<number | null>(null)
 
-  // Check if we're in a Farcaster Mini App context
-  const isInFrame = typeof window !== 'undefined' && window.location.search.includes('frame=1')
+  // Check if running in Farcaster frame
+  const isInFrame = typeof window !== 'undefined' && 
+    (window.location !== window.parent.location || 
+     window.navigator.userAgent.includes('Farcaster'))
 
-  // Initialize Farcaster SDK
-  const initializeSDK = useCallback(async () => {
-    try {
-      if (typeof window !== 'undefined') {
-        // Call sdk.actions.ready() as required by Farcaster Mini App docs
-        await sdk.actions.ready()
-        return sdk
-      }
-    } catch (error) {
-      console.error('Failed to initialize Farcaster SDK:', error)
-    }
-    return null
-  }, [])
-
-  // Initialize Farcaster authentication
-  const initializeAuth = useCallback(async () => {
-    try {
-      const miniAppSDK = await initializeSDK()
-      if (!miniAppSDK) {
-        throw new Error('Failed to initialize Farcaster SDK')
-      }
-
-      // Auto-connect: Try to authenticate immediately
+  // Load user data from localStorage on mount
+  useEffect(() => {
+    const loadUserData = () => {
       try {
-        // Use the SDK to fetch user data from the /me endpoint
-        const response = await miniAppSDK.quickAuth.fetch('/me')
-        if (response.ok) {
-          const userData = await response.json()
-          const user: FarcasterUser = {
-            fid: userData.fid || 0,
-            username: userData.username || 'unknown',
-            displayName: userData.displayName || userData.username || 'Unknown User',
-            pfpUrl: userData.pfpUrl || '/default-pfp.png'
-          }
-          setUser(user)
-          setIsAuthenticated(true)
-          localStorage.setItem('farcaster_user', JSON.stringify(user))
-          return
-        }
-      } catch {
-        console.log('Auto-connect failed, trying fallback')
-      }
-
-      // Check for existing session in localStorage as fallback
-      const savedUser = localStorage.getItem('farcaster_user')
-      if (savedUser) {
-        try {
-          const userData = JSON.parse(savedUser) as FarcasterUser
+        const storedUser = localStorage.getItem('farcaster_user')
+        const storedPersonalBest = localStorage.getItem('farcaster_personal_best')
+        
+        if (storedUser) {
+          const userData = JSON.parse(storedUser)
           setUser(userData)
           setIsAuthenticated(true)
-        } catch (e) {
-          console.error('Error parsing saved user data:', e)
-          localStorage.removeItem('farcaster_user')
         }
-      } else {
-        // If no saved user and auto-connect failed, create a default user for demo purposes
-        const defaultUser: FarcasterUser = {
-          fid: 0,
-          username: 'demo_user',
-          displayName: 'Demo User',
-          pfpUrl: '/default-pfp.png'
+        
+        if (storedPersonalBest) {
+          setPersonalBest(parseInt(storedPersonalBest, 10))
         }
-        setUser(defaultUser)
-        setIsAuthenticated(true)
-        localStorage.setItem('farcaster_user', JSON.stringify(defaultUser))
+      } catch (err) {
+        console.error('Failed to load user data:', err)
+      } finally {
+        setIsLoading(false)
       }
-    } catch (error) {
-      console.error('Farcaster auth initialization error:', error)
-      // Even if auth fails, set a default user so the app works
-      const defaultUser: FarcasterUser = {
-        fid: 0,
-        username: 'demo_user',
-        displayName: 'Demo User',
-        pfpUrl: '/default-pfp.png'
-      }
-      setUser(defaultUser)
-      setIsAuthenticated(true)
     }
-  }, [initializeSDK])
 
-  // Sign in with Farcaster
-  const signIn = useCallback(async () => {
+    loadUserData()
+  }, [])
+
+  const signIn = useCallback(() => {
     setIsLoading(true)
     setError(null)
-
-    try {
-      const miniAppSDK = await initializeSDK()
-      if (!miniAppSDK) {
-        throw new Error('Failed to initialize Farcaster SDK')
-      }
-
-      // Authenticate user by fetching user data
-      const response = await miniAppSDK.quickAuth.fetch('/me')
-      if (response.ok) {
-        const userData = await response.json()
-        const user: FarcasterUser = {
-          fid: userData.fid || 0,
-          username: userData.username || 'unknown',
-          displayName: userData.displayName || userData.username || 'Unknown User',
-          pfpUrl: userData.pfpUrl || '/default-pfp.png'
+    
+    // Simulate Farcaster authentication
+    // In production, this would integrate with actual Farcaster auth
+    setTimeout(() => {
+      try {
+        const mockUser: FarcasterUser = {
+          fid: Math.floor(Math.random() * 100000) + 1,
+          username: 'farcaster_user',
+          displayName: 'Farcaster User',
+          pfpUrl: '/icon.png',
+          followerCount: Math.floor(Math.random() * 10000) + 1000
         }
-        setUser(user)
+        
+        setUser(mockUser)
         setIsAuthenticated(true)
-        localStorage.setItem('farcaster_user', JSON.stringify(user))
-      } else {
-        throw new Error('Authentication failed')
+        localStorage.setItem('farcaster_user', JSON.stringify(mockUser))
+      } catch (err) {
+        setError('Failed to sign in')
+        console.error('Sign in error:', err)
+      } finally {
+        setIsLoading(false)
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Authentication failed')
-      console.error('Farcaster sign-in error:', err)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [initializeSDK])
+    }, 1000)
+  }, [])
 
-  // Sign out
   const signOut = useCallback(() => {
     setUser(null)
     setIsAuthenticated(false)
+    setPersonalBest(null)
     localStorage.removeItem('farcaster_user')
+    localStorage.removeItem('farcaster_personal_best')
   }, [])
 
-  // Get user's personal best score
-  const getPersonalBest = useCallback(() => {
-    if (!user) return null
-    
-    const key = `personal_best_${user.fid}`
-    const saved = localStorage.getItem(key)
-    return saved ? JSON.parse(saved) : null
-  }, [user])
-
-  // Save daily score (best score for today)
-  const saveDailyScore = useCallback((score: number, totalQuestions: number, timeTaken: number) => {
-    if (!user) return false
-    
-    const today = new Date().toDateString()
-    const dailyKey = `daily_score_${user.fid}_${today}`
-    const currentDaily = localStorage.getItem(dailyKey)
-    
-    const scoreData = {
-      score,
-      totalQuestions,
-      timeTaken,
-      date: new Date().toISOString(),
-      percentage: Math.round((score / totalQuestions) * 100)
+  const updatePersonalBest = useCallback((score: number) => {
+    if (personalBest === null || score > personalBest) {
+      setPersonalBest(score)
+      localStorage.setItem('farcaster_personal_best', score.toString())
     }
-    
-    if (!currentDaily || score > JSON.parse(currentDaily).score) {
-      localStorage.setItem(dailyKey, JSON.stringify(scoreData))
-      return true
-    }
-    
-    return false
-  }, [user])
-
-  // Add score to recent scores list
-  const addToRecentScores = useCallback((scoreData: ScoreData) => {
-    if (!user) return false
-    
-    const recentKey = `recent_scores_${user.fid}`
-    const currentRecent = localStorage.getItem(recentKey)
-    const recentScores = currentRecent ? JSON.parse(currentRecent) : []
-    
-    // Add new score to beginning
-    recentScores.unshift(scoreData)
-    
-    // Keep only last 20 scores
-    const updatedRecent = recentScores.slice(0, 20)
-    
-    localStorage.setItem(recentKey, JSON.stringify(updatedRecent))
-    return true
-  }, [user])
-
-  // Save user's personal best score
-  const savePersonalBest = useCallback((score: number, totalQuestions: number, timeTaken: number) => {
-    if (!user) return false
-    
-    const key = `personal_best_${user.fid}`
-    const currentBest = getPersonalBest()
-    
-    const scoreData = {
-      score,
-      totalQuestions,
-      timeTaken,
-      date: new Date().toISOString(),
-      percentage: Math.round((score / totalQuestions) * 100)
-    }
-    
-    if (!currentBest || score > currentBest.score || (score === currentBest.score && timeTaken < currentBest.timeTaken)) {
-      localStorage.setItem(key, JSON.stringify(scoreData))
-      saveDailyScore(score, totalQuestions, timeTaken)
-      addToRecentScores(scoreData)
-      return true
-    }
-    
-    saveDailyScore(score, totalQuestions, timeTaken)
-    addToRecentScores(scoreData)
-    return false
-  }, [user, getPersonalBest, saveDailyScore, addToRecentScores])
-
-
-  // Initialize auth on mount
-  useEffect(() => {
-    initializeAuth()
-  }, [initializeAuth])
+  }, [personalBest])
 
   return {
-    user,
     isAuthenticated,
     isLoading,
+    user,
     error,
     signIn,
     signOut,
-    getPersonalBest,
-    savePersonalBest,
-    saveDailyScore,
-    addToRecentScores,
     isInFrame,
-    sdk
+    personalBest,
+    updatePersonalBest
   }
 }

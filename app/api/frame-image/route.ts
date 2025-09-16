@@ -29,14 +29,14 @@ export async function GET(request: NextRequest) {
       <rect x="100" y="100" width="1000" height="430" rx="20" fill="rgba(255,255,255,0.95)" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
       
       <!-- Brain Icon -->
-      <circle cx="200" cy="200" r="60" fill="#3b82f6"/>
+      <circle cx="200" cy="200" r="60" fill="#8B5CF6"/>
       <text x="200" y="210" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="40" font-weight="bold">🧠</text>
       
       <!-- Title -->
       <text x="600" y="180" text-anchor="middle" fill="#1f2937" font-family="Arial, sans-serif" font-size="48" font-weight="bold">Brains Quiz Results</text>
       
       <!-- Score -->
-      <text x="600" y="280" text-anchor="middle" fill="#3b82f6" font-family="Arial, sans-serif" font-size="72" font-weight="bold">${score}/${total}</text>
+      <text x="600" y="280" text-anchor="middle" fill="#8B5CF6" font-family="Arial, sans-serif" font-size="72" font-weight="bold">${score}/${total}</text>
       
       <!-- Percentage -->
       <text x="600" y="340" text-anchor="middle" fill="#10b981" font-family="Arial, sans-serif" font-size="48" font-weight="bold">${percentage}%</text>
@@ -57,6 +57,9 @@ export async function GET(request: NextRequest) {
     },
   })
 }
+
+
+
 
 
 

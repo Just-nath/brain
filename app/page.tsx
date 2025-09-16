@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Brain, Clock, Users, Trophy, HelpCircle } from "lucide-react"
+import { Brain, Users, HelpCircle } from "lucide-react"
 import QuizEngine from "@/components/quiz-engine"
 import FarcasterAuth from "@/components/farcaster-auth"
 import { useFarcaster } from "@/src/hooks/useFarcaster"
@@ -130,41 +129,7 @@ export default function HomePage() {
             )}
           </div>
 
-          {/* Quiz Info Cards - Mobile Optimized */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-8 md:mb-12">
-            {[
-              {
-                icon: Clock,
-                title: "10 Min Challenge",
-                description: "20 questions in 10 minutes",
-                delay: "delay-600",
-              },
-              {
-                icon: Trophy,
-                title: "Score & Ranking",
-                description: "Get your SimplySimi ranking",
-                delay: "delay-700",
-              },
-            ].map((card, index) => (
-              <Card
-                key={index}
-                className={`text-center animate-in slide-in-from-bottom duration-500 ${card.delay} hover:shadow-lg hover:scale-105 transition-all duration-200`}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex justify-center mb-2">
-                    <card.icon
-                      className="h-6 w-6 md:h-8 md:w-8 text-secondary animate-in zoom-in duration-300"
-                      style={{ animationDelay: `${600 + index * 100 + 200}ms` }}
-                    />
-                  </div>
-                  <CardTitle className="text-base md:text-lg">{card.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-sm">{card.description}</CardDescription>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          {/* Removed quiz info cards per request */}
 
 
 

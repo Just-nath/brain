@@ -13,6 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://brains.vercel.app'),
   title: "Brains - Farcaster Profile IQ Quiz",
   description: "Test your knowledge of Farcaster community members. Identify profiles from their pictures and compete with friends!",
   keywords: ["Farcaster", "Quiz", "IQ Test", "Community", "Profile Pictures", "Social Media"],
@@ -44,6 +45,7 @@ export const metadata: Metadata = {
     "fc:frame:button:1": "Take Quiz",
     "fc:frame:button:2": "View Results",
     "fc:frame:post_url": "/api/frame",
+    "fc:frame:aspect_ratio": "1.91:1",
   },
 };
 
