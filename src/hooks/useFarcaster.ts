@@ -48,8 +48,30 @@ export function useFarcaster(): UseFarcasterReturn {
         
         console.log('[Farcaster SDK] Running in miniapp context:', inMiniApp)
         
-        // If we're in a miniapp, mark as ready
+        // If we're in a miniapp, auto-login and mark as ready
         if (inMiniApp) {
+          try {
+            // Get user info from miniapp context
+            const userInfo = await sdk.actions.getUser()
+            
+            if (userInfo && userInfo.fid) {
+              const farcasterUser: FarcasterUser = {
+                fid: userInfo.fid,
+                username: userInfo.username || `user_${userInfo.fid}`,
+                displayName: userInfo.displayName || userInfo.username || `User ${userInfo.fid}`,
+                pfpUrl: userInfo.pfpUrl || '/icon.png',
+                followerCount: userInfo.followerCount || 0
+              }
+              
+              setUser(farcasterUser)
+              setIsAuthenticated(true)
+              localStorage.setItem('farcaster_user', JSON.stringify(farcasterUser))
+              console.log('[Farcaster SDK] Auto-logged in user:', farcasterUser)
+            }
+          } catch (userError) {
+            console.log('[Farcaster SDK] Could not get user info, will use fallback auth:', userError)
+          }
+          
           await sdk.actions.ready({
             disableNativeGestures: false // Allow native gestures by default
           })
@@ -89,18 +111,37 @@ export function useFarcaster(): UseFarcasterReturn {
     loadUserData()
   }, [])
 
-  const signIn = useCallback(() => {
+  const signIn = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     
-    // Simulate Farcaster authentication
-    // In production, this would integrate with actual Farcaster auth
-    setTimeout(() => {
-      try {
+    try {
+      if (isInMiniApp) {
+        // Try to get user info from miniapp context
+        const userInfo = await sdk.actions.getUser()
+        
+        if (userInfo && userInfo.fid) {
+          const farcasterUser: FarcasterUser = {
+            fid: userInfo.fid,
+            username: userInfo.username || `user_${userInfo.fid}`,
+            displayName: userInfo.displayName || userInfo.username || `User ${userInfo.fid}`,
+            pfpUrl: userInfo.pfpUrl || '/icon.png',
+            followerCount: userInfo.followerCount || 0
+          }
+          
+          setUser(farcasterUser)
+          setIsAuthenticated(true)
+          localStorage.setItem('farcaster_user', JSON.stringify(farcasterUser))
+          console.log('[Farcaster SDK] Signed in user:', farcasterUser)
+        } else {
+          throw new Error('Could not get user info from miniapp')
+        }
+      } else {
+        // Fallback for non-miniapp context
         const mockUser: FarcasterUser = {
           fid: Math.floor(Math.random() * 100000) + 1,
-          username: 'farcaster_user',
-          displayName: 'Farcaster User',
+          username: 'demo_user',
+          displayName: 'Demo User',
           pfpUrl: '/icon.png',
           followerCount: Math.floor(Math.random() * 10000) + 1000
         }
@@ -108,14 +149,15 @@ export function useFarcaster(): UseFarcasterReturn {
         setUser(mockUser)
         setIsAuthenticated(true)
         localStorage.setItem('farcaster_user', JSON.stringify(mockUser))
-      } catch (err) {
-        setError('Failed to sign in')
-        console.error('Sign in error:', err)
-      } finally {
-        setIsLoading(false)
+        console.log('[Demo] Signed in demo user:', mockUser)
       }
-    }, 1000)
-  }, [])
+    } catch (err) {
+      setError('Failed to sign in')
+      console.error('Sign in error:', err)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [isInMiniApp])
 
   const signOut = useCallback(() => {
     setUser(null)

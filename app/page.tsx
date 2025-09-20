@@ -3,14 +3,16 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Brain, Users, HelpCircle } from "lucide-react"
+import { Brain, Users, HelpCircle, Trophy } from "lucide-react"
 import QuizEngine from "@/components/quiz-engine"
+import Leaderboard from "@/components/leaderboard"
 import FarcasterAuth from "@/components/farcaster-auth"
 import { useFarcaster } from "@/src/hooks/useFarcaster"
 import Link from "next/link"
 
 export default function HomePage() {
   const [quizStarted, setQuizStarted] = useState(false)
+  const [showLeaderboard, setShowLeaderboard] = useState(false)
   const [launchingAccount, setLaunchingAccount] = useState<string | undefined>(undefined)
   const { isAuthenticated, user, isInMiniApp, markReady } = useFarcaster()
 
@@ -48,6 +50,10 @@ export default function HomePage() {
     )
   }
 
+  if (showLeaderboard) {
+    return <Leaderboard onClose={() => setShowLeaderboard(false)} />
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -83,8 +89,18 @@ export default function HomePage() {
               </div>
             </div>
             
-            {/* Right side - User Profile Icon */}
-            <div className="flex items-center">
+            {/* Right side - Leaderboard and User Profile Icons */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-10 w-10 md:h-12 md:w-12 rounded-full hover:bg-primary/10 transition-colors animate-in zoom-in duration-500 delay-400"
+                title="View Leaderboard"
+                onClick={() => setShowLeaderboard(true)}
+              >
+                <Trophy className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground hover:text-primary transition-colors" />
+              </Button>
+              
               {isAuthenticated && user && (
                 <Link href="/profile">
                   <Button
@@ -142,15 +158,25 @@ export default function HomePage() {
 
 
 
-          {/* Start Button - Mobile Optimized */}
+          {/* Action Buttons */}
           <div className="text-center animate-in slide-in-from-bottom duration-500 delay-800">
-            <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Button
                 size="lg"
-                className="w-full md:w-auto px-8 md:px-12 py-4 md:py-6 text-base md:text-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                className="w-full sm:w-auto px-8 md:px-12 py-4 md:py-6 text-base md:text-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 onClick={() => setQuizStarted(true)}
               >
                 Start Quiz
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full sm:w-auto px-8 md:px-12 py-4 md:py-6 text-base md:text-lg font-semibold border-purple-200 hover:bg-purple-50"
+                onClick={() => setShowLeaderboard(true)}
+              >
+                <Trophy className="h-5 w-5 mr-2" />
+                View Leaderboard
               </Button>
             </div>
             <p className="text-xs md:text-sm text-muted-foreground mt-3 md:mt-4 animate-in fade-in duration-500 delay-900">

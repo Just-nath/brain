@@ -19,7 +19,9 @@
     "next": "^15.5.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "tailwind-merge": "^3.3.1"
+    "tailwind-merge": "^3.3.1",
+    "sqlite3": "^5.1.7",
+    "better-sqlite3": "^11.6.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -27,6 +29,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/better-sqlite3": "^7.6.11",
     "eslint": "^9",
     "eslint-config-next": "15.2.4",
     "tailwindcss": "^4.1.12",
