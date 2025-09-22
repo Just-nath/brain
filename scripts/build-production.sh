@@ -103,3 +103,4 @@ echo ""
 echo "📊 Database location: ./data/brains.db"
 echo "🌐 App will be available at: http://localhost:3000"
 
+
